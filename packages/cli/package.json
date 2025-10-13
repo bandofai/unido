@@ -24,13 +24,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/unido.git",
+    "url": "https://github.com/bandofai/unido.git",
     "directory": "packages/cli"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/unido/issues"
+    "url": "https://github.com/bandofai/unido/issues"
   },
-  "homepage": "https://github.com/yourusername/unido#readme",
+  "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
