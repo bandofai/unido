@@ -30,13 +30,14 @@ pnpm create unido
 
 The CLI will prompt you for:
 - Project name
-- Template selection (basic, weather, multi-provider)
-- AI provider (OpenAI, Claude, or both)
+- Template selection (basic or weather)
+
+**Note:** All projects use OpenAI ChatGPT as the AI provider.
 
 ### Non-Interactive Mode
 
 ```bash
-pnpm create unido my-app --template basic --provider openai
+pnpm create unido my-app --template basic
 ```
 
 ### Options
@@ -44,8 +45,7 @@ pnpm create unido my-app --template basic --provider openai
 ```
 Options:
   -V, --version              output the version number
-  -t, --template <template>  Template to use (basic, weather, multi-provider)
-  -p, --provider <provider>  AI provider (openai, claude, both)
+  -t, --template <template>  Template to use (basic, weather)
   --skip-install             Skip npm install
   --skip-git                 Skip git initialization
   -h, --help                 display help for command

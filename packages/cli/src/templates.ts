@@ -4,16 +4,16 @@
 
 export function getPackageJson(projectName: string, provider: string): Record<string, unknown> {
   const dependencies: Record<string, string> = {
-    '@unido/core': '^0.2.0',
-    zod: '^3.24.1',
+    '@bandofai/unido-core': '^0.1.0',
+    'zod': '^3.24.1',
   };
 
   if (provider === 'openai' || provider === 'both') {
-    dependencies['@unido/provider-openai'] = '^0.2.0';
+    dependencies['@bandofai/unido-provider-openai'] = '^0.1.0';
   }
 
   if (provider === 'claude' || provider === 'both') {
-    dependencies['@unido/provider-claude'] = '^0.2.0';
+    dependencies['@bandofai/unido-provider-claude'] = '^0.1.0';
   }
 
   return {
@@ -216,15 +216,15 @@ MIT
 
 export function getBasicTemplate(provider: string): string {
   const imports = [];
-  imports.push(`import { createApp, textResponse } from '@unido/core';`);
+  imports.push(`import { createApp, textResponse } from '@bandofai/unido-core';`);
 
   if (provider === 'openai') {
-    imports.push(`import { OpenAIAdapter } from '@unido/provider-openai';`);
+    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
   } else if (provider === 'claude') {
-    imports.push(`import { ClaudeAdapter } from '@unido/provider-claude';`);
+    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
   } else {
-    imports.push(`import { OpenAIAdapter } from '@unido/provider-openai';`);
-    imports.push(`import { ClaudeAdapter } from '@unido/provider-claude';`);
+    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
+    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
   }
 
   imports.push(`import { z } from 'zod';`);
@@ -292,7 +292,7 @@ app.tool('greet', {
   input: z.object({
     name: z.string().describe('Name of the person to greet'),
   }),
-  handler: async ({ name }) => {
+  handler: async ({ name }: { name: string }) => {
     return textResponse(\`Hello, \${name}! Welcome to Unido.\`);
   },
 });
@@ -305,8 +305,8 @@ app.tool('calculate', {
     a: z.number().describe('First number'),
     b: z.number().describe('Second number'),
   }),
-  handler: async ({ operation, a, b }) => {
-    let result: number;
+  handler: async ({ operation, a, b }: { operation: 'add' | 'subtract' | 'multiply' | 'divide'; a: number; b: number }) => {
+    let result: number | undefined;
 
     switch (operation) {
       case 'add':
@@ -350,13 +350,13 @@ process.on('SIGINT', async () => {
 
 export function getWeatherTemplate(provider: string): string {
   const imports = [];
-  imports.push(`import { createApp, textResponse, componentResponse } from '@unido/core';`);
+  imports.push(`import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';`);
 
   if (provider === 'openai' || provider === 'both') {
-    imports.push(`import { OpenAIAdapter } from '@unido/provider-openai';`);
+    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
   }
   if (provider === 'claude' || provider === 'both') {
-    imports.push(`import { ClaudeAdapter } from '@unido/provider-claude';`);
+    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
   }
 
   imports.push(`import { z } from 'zod';`);
@@ -450,7 +450,7 @@ app.tool('get_weather', {
       .default('celsius')
       .describe('Temperature units'),
   }),
-  handler: async ({ city, units }) => {
+  handler: async ({ city, units }: { city: string; units?: 'celsius' | 'fahrenheit' }) => {
     const data = await fetchWeather(city, units ?? 'celsius');
 
     return componentResponse(
@@ -467,7 +467,7 @@ app.tool('search_cities', {
   input: z.object({
     query: z.string().describe('Search query'),
   }),
-  handler: async ({ query }) => {
+  handler: async ({ query }: { query: string }) => {
     const cities = [
       'New York', 'London', 'Tokyo', 'Paris', 'Sydney',
       'Berlin', 'Toronto', 'Mumbai', 'Singapore', 'Dubai'
@@ -495,9 +495,9 @@ process.on('SIGINT', async () => {
 }
 
 export function getMultiProviderTemplate(): string {
-  return `import { createApp, textResponse } from '@unido/core';
-import { OpenAIAdapter } from '@unido/provider-openai';
-import { ClaudeAdapter } from '@unido/provider-claude';
+  return `import { createApp, textResponse } from '@bandofai/unido-core';
+import { OpenAIAdapter } from '@bandofai/unido-provider-openai';
+import { ClaudeAdapter } from '@bandofai/unido-provider-claude';
 import { z } from 'zod';
 
 // ============================================================================

@@ -112,11 +112,21 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
       const packageManager = await detectPackageManager();
       console.log(chalk.blue(`  Using ${packageManager}...\n`));
 
-      await execAsync(`${packageManager} install`, {
+      const { stdout, stderr } = await execAsync(`${packageManager} install`, {
         cwd: projectPath,
+        env: { ...process.env, PNPM_HOME: projectPath },
       });
-    } catch {
-      console.log(chalk.yellow('\n  ⚠️  Installation failed. Run npm install manually.\n'));
+
+      if (stdout) console.log(stdout);
+      if (stderr) console.error(stderr);
+
+      console.log(chalk.green('\n  ✅ Dependencies installed successfully!\n'));
+    } catch (error) {
+      console.log(chalk.yellow('\n  ⚠️  Installation failed. Please run the following command manually:\n'));
+      console.log(chalk.white(`    cd ${projectName} && pnpm install\n`));
+      if (error instanceof Error) {
+        console.log(chalk.gray(`  Error: ${error.message}\n`));
+      }
     }
   }
 }

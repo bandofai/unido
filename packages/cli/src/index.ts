@@ -18,8 +18,7 @@ program
   .description('Create a new Unido AI application')
   .version('0.2.0')
   .argument('[project-name]', 'Name of the project to create')
-  .option('-t, --template <template>', 'Template to use (basic, weather, multi-provider)')
-  .option('-p, --provider <provider>', 'AI provider (openai, claude, both)')
+  .option('-t, --template <template>', 'Template to use (basic, weather)')
   .option('--skip-install', 'Skip npm install')
   .option('--skip-git', 'Skip git initialization')
   .action(async (projectName, options) => {
@@ -34,7 +33,7 @@ program
     };
 
     // Interactive prompts if options not provided
-    if (!projectName || !options.template || !options.provider) {
+    if (!projectName || !options.template) {
       const prompts = [];
 
       if (!projectName) {
@@ -57,51 +56,27 @@ program
           message: 'Select a template:',
           choices: [
             {
-              name: 'Basic - Minimal setup with one tool',
+              name: 'Basic - Minimal setup with example tools',
               value: 'basic',
             },
             {
               name: 'Weather - Complete weather app example',
               value: 'weather',
             },
-            {
-              name: 'Multi-Provider - OpenAI + Claude setup',
-              value: 'multi-provider',
-            },
           ],
           default: 'basic',
         });
       }
 
-      if (!options.provider) {
-        prompts.push({
-          type: 'list',
-          name: 'provider',
-          message: 'Select AI provider:',
-          choices: [
-            {
-              name: 'OpenAI ChatGPT - HTTP + SSE transport',
-              value: 'openai',
-            },
-            {
-              name: 'Anthropic Claude - stdio transport',
-              value: 'claude',
-            },
-            {
-              name: 'Both - Multi-provider setup',
-              value: 'both',
-            },
-          ],
-          default: 'openai',
-        });
-      }
+      // Provider is always OpenAI (only supported provider)
+      // Keep for future when more providers are added
 
       const promptAnswers = await inquirer.prompt(prompts as any);
 
       answers = {
         projectName: projectName || promptAnswers.projectName,
         template: options.template || promptAnswers.template,
-        provider: options.provider || promptAnswers.provider,
+        provider: 'openai', // Default to OpenAI
         skipInstall: options.skipInstall || false,
         skipGit: options.skipGit || false,
       };
@@ -109,7 +84,7 @@ program
       answers = {
         projectName,
         template: options.template,
-        provider: options.provider,
+        provider: 'openai', // Default to OpenAI
         skipInstall: options.skipInstall || false,
         skipGit: options.skipGit || false,
       };
@@ -131,28 +106,17 @@ program
       console.log(chalk.white(`  cd ${answers.projectName}`));
 
       if (answers.skipInstall) {
-        console.log(chalk.white('  npm install'));
+        console.log(chalk.white('  pnpm install  # Install dependencies'));
       }
 
-      console.log(chalk.white('  npm run dev\n'));
+      console.log(chalk.white('  pnpm run dev  # Start development server\n'));
 
-      // Provider-specific instructions
-      if (answers.provider === 'openai' || answers.provider === 'both') {
-        console.log(chalk.yellow('📡 OpenAI Setup:'));
-        console.log(chalk.white('  1. Server will run on http://localhost:3000'));
-        console.log(chalk.white('  2. Add to ChatGPT: Settings → Custom Tools → Add Server\n'));
-      }
+      // OpenAI setup instructions
+      console.log(chalk.yellow('📡 OpenAI ChatGPT Setup:'));
+      console.log(chalk.white('  1. Server will run on http://localhost:3000'));
+      console.log(chalk.white('  2. Add to ChatGPT: Settings → Custom Tools → Add Server\n'));
 
-      if (answers.provider === 'claude' || answers.provider === 'both') {
-        console.log(chalk.yellow('🤖 Claude Desktop Setup:'));
-        console.log(
-          chalk.white('  1. Edit: ~/Library/Application Support/Claude/claude_desktop_config.json')
-        );
-        console.log(chalk.white('  2. Add your app to "mcpServers"'));
-        console.log(chalk.white('  3. Restart Claude Desktop\n'));
-      }
-
-      console.log(chalk.cyan('📚 Documentation: https://github.com/yourusername/unido\n'));
+      console.log(chalk.cyan('📚 Documentation: https://github.com/bandofai/unido\n'));
     } catch (error) {
       console.error(chalk.red('\n❌ Error creating project:\n'));
       console.error(error instanceof Error ? error.message : String(error));

@@ -4,9 +4,10 @@
 
 Unido is a TypeScript framework that lets you create custom tools and interfaces for AI assistants (ChatGPT, Claude, Gemini) using a single codebase. Write your tool logic once, and Unido automatically adapts it to work with different AI platforms.
 
+[![npm version](https://img.shields.io/npm/v/create-unido)](https://www.npmjs.com/package/create-unido)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.17-orange)](https://pnpm.io/)
-[![License](https://img.shields.io/badge/license-ISC-green)](./LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 ---
 
@@ -75,19 +76,121 @@ That's it! Your weather tool now works in:
 
 ## 🚀 Getting Started
 
-### Installation
+### Quick Start with CLI (Recommended)
+
+The fastest way to get started is using the interactive CLI:
+
+```bash
+# Create a new Unido app
+pnpm create unido
+
+# Or with npm
+npm create unido
+
+# Or with npx
+npx create-unido
+```
+
+This will scaffold a complete project with:
+- ✅ Your choice of template (basic, weather, or multi-provider)
+- ✅ TypeScript configuration
+- ✅ All necessary dependencies
+- ✅ Ready-to-run example code
+
+> **Note:** The CLI (`create-unido`) is published and available on npm, but the core Unido packages (`@unido/core`, `@unido/provider-openai`, `@unido/provider-claude`) need to be published before the generated projects will work. See [Publishing Status](#publishing-status) below.
+
+### Manual Setup
+
+If you prefer to set up your project manually without the CLI, follow these steps:
+
+#### Step 1: Create a New Project
+
+```bash
+# Create project directory
+mkdir my-unido-app
+cd my-unido-app
+
+# Initialize package.json
+pnpm init
+# or
+npm init -y
+```
+
+#### Step 2: Install Dependencies
 
 ```bash
 # Install Unido packages
-pnpm add @unido/core @unido/provider-openai @unido/provider-claude zod
+pnpm add @unido/core @unido/provider-openai zod
 
-# Or use npm
+# For Claude support, also add:
+pnpm add @unido/provider-claude
+
+# Or use npm:
 npm install @unido/core @unido/provider-openai @unido/provider-claude zod
 ```
 
-### Create Your First Tool
+#### Step 3: Install Dev Dependencies
 
-1. **Create a new file** (`my-tool.ts`):
+```bash
+pnpm add -D typescript @types/node tsx
+
+# Or with npm:
+npm install --save-dev typescript @types/node tsx
+```
+
+#### Step 4: Configure TypeScript
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+#### Step 5: Update package.json
+
+Add these fields to your `package.json`:
+
+```json
+{
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+```
+
+#### Step 6: Create Your Application
+
+Create `src/index.ts`:
 
 ```typescript
 import { createApp, textResponse } from '@unido/core';
@@ -95,9 +198,96 @@ import { openAI } from '@unido/provider-openai';
 import { z } from 'zod';
 
 const app = createApp({
-  name: 'my-first-tool',
+  name: 'my-unido-app',
+  version: '1.0.0',
   providers: {
     openai: openAI({ port: 3000 })
+  }
+});
+
+// Define your first tool
+app.tool('greet', {
+  description: 'Greet a user by name',
+  input: z.object({
+    name: z.string().describe('User\'s name')
+  }),
+  handler: async ({ name }) => {
+    return textResponse(`Hello, ${name}! 👋`);
+  }
+});
+
+// Start the server
+await app.listen();
+console.log('🚀 Unido app is running!');
+```
+
+#### Step 7: Create .gitignore
+
+Create `.gitignore`:
+
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+```
+
+#### Step 8: Run Your App
+
+```bash
+# Development mode (with hot reload)
+pnpm run dev
+
+# Or with npm:
+npm run dev
+```
+
+#### Step 9: Connect to ChatGPT
+
+1. Your server is now running on `http://localhost:3000`
+2. Open ChatGPT
+3. Go to **Settings → Apps**
+4. Click **Add Server**
+5. Enter your server URL: `http://localhost:3000`
+6. Test it by asking ChatGPT: "Greet me with my name"
+
+That's it! Now ChatGPT can use your custom tool!
+
+---
+
+### Manual Setup for Claude Desktop
+
+If you want to use Claude Desktop instead of (or in addition to) OpenAI:
+
+#### Step 1: Update src/index.ts
+
+```typescript
+import { createApp, textResponse } from '@unido/core';
+import { claude } from '@unido/provider-claude';
+import { z } from 'zod';
+
+const app = createApp({
+  name: 'my-unido-app',
+  version: '1.0.0',
+  providers: {
+    claude: claude({ transport: 'stdio' })
   }
 });
 
@@ -114,18 +304,30 @@ app.tool('greet', {
 await app.listen();
 ```
 
-2. **Run it**:
+#### Step 2: Build Your App
 
 ```bash
-pnpm tsx my-tool.ts
+pnpm run build
 ```
 
-3. **Connect to ChatGPT**:
-   - Open ChatGPT
-   - Go to Settings → Apps
-   - Add your app URL: `http://localhost:3000`
+#### Step 3: Configure Claude Desktop
 
-Now ChatGPT can use your custom tool!
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-unido-app": {
+      "command": "node",
+      "args": ["/absolute/path/to/my-unido-app/dist/index.js"]
+    }
+  }
+}
+```
+
+#### Step 4: Restart Claude Desktop
+
+Restart the Claude Desktop app, and your tools will be available!
 
 ---
 
@@ -272,7 +474,37 @@ Unido is organized as a monorepo:
 - **`@unido/provider-claude`** - Claude Desktop adapter
 - **`@unido/components`** - Reusable UI components
 - **`@unido/dev`** - Development utilities
-- **`@unido/cli`** - CLI tool for scaffolding (coming soon)
+- **`create-unido`** - CLI tool for scaffolding ✅ Published
+
+---
+
+## 📦 Publishing Status
+
+### Published Packages
+
+- ✅ **`create-unido@0.2.0`** - CLI tool available on npm
+  - npm: https://www.npmjs.com/package/create-unido
+  - Usage: `pnpm create unido`
+
+### Packages Pending Publication
+
+The following packages need to be published to npm for the full framework to work:
+
+- ⏳ **`@unido/core`** - Core framework (required)
+- ⏳ **`@unido/provider-base`** - Base provider classes (required)
+- ⏳ **`@unido/provider-openai`** - OpenAI adapter (required for ChatGPT)
+- ⏳ **`@unido/provider-claude`** - Claude adapter (required for Claude Desktop)
+- ⏳ **`@unido/components`** - UI components (optional)
+- ⏳ **`@unido/dev`** - Development utilities (optional)
+
+### For Now: Manual Setup Required
+
+Until the core packages are published, use the [Manual Setup](#manual-setup) guide above to:
+1. Clone this repository
+2. Build packages locally
+3. Link them in your project
+
+We're working on publishing all packages soon!
 
 ---
 
@@ -354,7 +586,7 @@ We welcome contributions! Please see our [contributing guide](CONTRIBUTING.md) (
 
 ## 📄 License
 
-ISC License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "name": "@unido/provider-openai",
+  "name": "@bandofai/unido-provider-openai",
   "version": "0.1.0",
   "description": "Unido OpenAI - Provider adapter for OpenAI ChatGPT",
   "type": "module",
@@ -34,20 +34,37 @@
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
+    "prepublishOnly": "pnpm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bandofai/unido.git",
+    "directory": "packages/providers/openai"
+  },
+  "bugs": {
+    "url": "https://github.com/bandofai/unido/issues"
+  },
+  "homepage": "https://github.com/bandofai/unido#readme",
+  "author": "Tomas Kavka <iam@tomaskavka.cz>",
+  "license": "MIT",
+  "keywords": ["unido", "openai", "chatgpt", "provider", "mcp", "ai"],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@unido/core": "workspace:*",
-    "@unido/provider-base": "workspace:*",
+    "@bandofai/unido-core": "^0.1.0",
+    "@bandofai/unido-provider-base": "^0.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
+  },
+  "peerDependencies": {
+    "@bandofai/unido-core": "^0.1.0",
+    "@bandofai/unido-provider-base": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
