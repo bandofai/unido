@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@unido/core": ["./packages/core/src/index.ts"],
+      "@unido/core/*": ["./packages/core/src/*"],
+      "@unido/provider-base": ["./packages/providers/base/src/index.ts"],
+      "@unido/provider-base/*": ["./packages/providers/base/src/*"],
+      "@unido/provider-openai": ["./packages/providers/openai/src/index.ts"],
+      "@unido/provider-openai/*": ["./packages/providers/openai/src/*"],
+      "@unido/provider-claude": ["./packages/providers/claude/src/index.ts"],
+      "@unido/provider-claude/*": ["./packages/providers/claude/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build"]
+}

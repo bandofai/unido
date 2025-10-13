@@ -1,0 +1,23 @@
+{
+  "name": "weather-app-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example weather app using Unido",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@unido/core": "workspace:*",
+    "@unido/provider-openai": "workspace:*",
+    "@unido/dev": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
