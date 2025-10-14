@@ -27,7 +27,7 @@ function stringifyJson(value: unknown): string {
   return json.replace(/\[\n((?:\s{2,}"[^"]+"(?:,\n)?)+)\n(\s{2,})\]/g, (_match, items: string) => {
     const compactItems = items
       .split('\n')
-      .map((line: string) => line.trim())
+      .map((line: string) => line.trim().replace(/,$/, '')) // Remove trailing commas before joining
       .filter(Boolean)
       .join(', ');
 
