@@ -66,6 +66,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
   private mcpServer?: Server;
   private httpServer?: OpenAIHttpServer;
+  private serverConfig?: ServerConfig;
   private port = 3000;
   private host = 'localhost';
   private componentResourcesByUri = new Map<string, ComponentResourceEntry>();
@@ -78,6 +79,9 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   async initialize(config: ServerConfig): Promise<void> {
     await super.initialize(config);
 
+    // Store config for use in factory
+    this.serverConfig = config;
+
     // Extract config from provider config
     const providerConfig = config.providers?.openai;
     if (providerConfig?.port) {
@@ -89,11 +93,23 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     await this.prepareComponents(config.components ?? []);
 
-    // Create MCP server
-    this.mcpServer = new Server(
+    // Create an initial MCP server instance for validation
+    this.mcpServer = this.createMcpServerInstance();
+  }
+
+  // =========================================================================
+  // MCP Server Factory
+  // =========================================================================
+
+  /**
+   * Create a new MCP Server instance
+   * This is called for each SSE connection to ensure proper isolation
+   */
+  private createMcpServerInstance(): Server {
+    const server = new Server(
       {
-        name: config.name,
-        version: config.version,
+        name: this.serverConfig?.name ?? 'unido-server',
+        version: this.serverConfig?.version ?? '1.0.0',
       },
       {
         capabilities: {
@@ -103,10 +119,10 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       }
     );
 
-    // Set up tool handlers using MCP SDK schemas
-    this.mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+    // Set up tool handlers
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
-        tools: config.tools.map((tool: UniversalTool) => {
+        tools: (this.serverConfig?.tools ?? []).map((tool: UniversalTool) => {
           const converted = this.convertTool(tool);
           return {
             name: converted.name,
@@ -117,10 +133,10 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       };
     });
 
-    this.mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
-      const tool = config.tools.find((t: UniversalTool) => t.name === name);
+      const tool = (this.serverConfig?.tools ?? []).find((t: UniversalTool) => t.name === name);
       if (!tool) {
         throw new Error(`Tool not found: ${name}`);
       }
@@ -134,7 +150,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     });
 
     // Register resources handler for components
-    this.mcpServer.setRequestHandler(ListResourcesRequestSchema, async () => {
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
       return {
         resources: Array.from(this.componentResourcesByUri.values()).map(
           (entry) => entry.resource
@@ -142,7 +158,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       };
     });
 
-    this.mcpServer.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const uri = request.params.uri;
       const entry = this.componentResourcesByUri.get(uri);
 
@@ -160,6 +176,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         ],
       };
     });
+
+    return server;
   }
 
   // =========================================================================
@@ -431,8 +449,11 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       throw new Error('Adapter not initialized. Call initialize() first.');
     }
 
+    // Create a factory function that creates a new MCP server for each connection
+    const createMcpServer = () => this.createMcpServerInstance();
+
     // Create HTTP server with SSE support
-    this.httpServer = createHttpServer(this.mcpServer, {
+    this.httpServer = createHttpServer(createMcpServer, {
       port: this.port,
       host: this.host,
       cors: true,

@@ -33,8 +33,13 @@ export interface OpenAIHttpServer {
 
 /**
  * Create Express HTTP server with SSE support for MCP
+ * @param createMcpServer Factory function that creates a new MCP Server instance for each connection
+ * @param options Server configuration options
  */
-export function createHttpServer(mcpServer: Server, options: ServerOptions): OpenAIHttpServer {
+export function createHttpServer(
+  createMcpServer: () => Server,
+  options: ServerOptions
+): OpenAIHttpServer {
   const { port, host = 'localhost', cors: enableCors = true } = options;
 
   const app: Application = express();
@@ -69,17 +74,29 @@ export function createHttpServer(mcpServer: Server, options: ServerOptions): Ope
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Create SSE transport
-    const transport = new SSEServerTransport('/messages', res);
+    try {
+      // Create a NEW MCP server instance for this connection
+      const mcpServer = createMcpServer();
 
-    // Connect MCP server to transport
-    await mcpServer.connect(transport);
+      // Create SSE transport
+      const transport = new SSEServerTransport('/messages', res);
 
-    // Handle client disconnect
-    req.on('close', () => {
-      console.log('📡 SSE client disconnected');
-      transport.close().catch(console.error);
-    });
+      // Connect MCP server to transport
+      console.log('🔌 Connecting new MCP server instance to SSE transport...');
+      await mcpServer.connect(transport);
+      console.log('✅ MCP server connected to SSE transport');
+
+      // Handle client disconnect
+      req.on('close', () => {
+        console.log('📡 SSE client disconnected');
+        transport.close().catch((err) => {
+          console.error('Error closing transport:', err);
+        });
+      });
+    } catch (error) {
+      console.error('❌ Error connecting SSE transport:', error);
+      res.status(500).end();
+    }
   });
 
   // POST endpoint for MCP messages
