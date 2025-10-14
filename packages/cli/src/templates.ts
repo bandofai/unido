@@ -18,7 +18,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
     dependencies: {
       '@bandofai/unido-core': '^0.1.1',
       '@bandofai/unido-provider-openai': '^0.1.1',
-      '@bandofai/unido-components': '^0.1.1',
+      '@bandofai/unido-components': '^0.1.2',
       'zod': '^3.24.1',
     },
     devDependencies: {
