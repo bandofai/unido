@@ -41,6 +41,7 @@ export function createHttpServer(
   options: ServerOptions
 ): OpenAIHttpServer {
   const { port, host = 'localhost', cors: enableCors = true } = options;
+  const connections = new Map<string, { transport: SSEServerTransport; server: Server }>();
 
   const app: Application = express();
 
@@ -48,7 +49,7 @@ export function createHttpServer(
   if (enableCors) {
     app.use(cors());
   }
-  app.use(express.json());
+  app.use(express.json({ limit: '4mb' }));
 
   // Health check endpoint
   app.get('/health', (_req: Request, res: Response) => {
@@ -66,51 +67,93 @@ export function createHttpServer(
   });
 
   // SSE endpoint - this is where MCP communication happens
-  app.get('/sse', async (req: Request, res: Response) => {
+  app.get('/sse', async (_req: Request, res: Response) => {
     console.log('📡 SSE client connected');
-
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    let transport: SSEServerTransport | undefined;
+    let mcpServer: Server | undefined;
 
     try {
       // Create a NEW MCP server instance for this connection
-      const mcpServer = createMcpServer();
+      mcpServer = createMcpServer();
 
       // Create SSE transport
-      const transport = new SSEServerTransport('/messages', res);
+      transport = new SSEServerTransport('/messages', res);
+      const sessionKey = transport.sessionId;
+      connections.set(sessionKey, { transport, server: mcpServer });
+
+      transport.onclose = () => {
+        console.log('📡 SSE client disconnected');
+        connections.delete(sessionKey);
+        mcpServer
+          ?.close()
+          .catch((err) => {
+            console.error('Error closing MCP server:', err);
+          });
+      };
+
+      transport.onerror = (error) => {
+        console.error(`❌ SSE transport error for session ${sessionKey}:`, error);
+      };
 
       // Connect MCP server to transport
       console.log('🔌 Connecting new MCP server instance to SSE transport...');
       await mcpServer.connect(transport);
       console.log('✅ MCP server connected to SSE transport');
-
-      // Handle client disconnect
-      req.on('close', () => {
-        console.log('📡 SSE client disconnected');
-        transport.close().catch((err) => {
-          console.error('Error closing transport:', err);
-        });
-      });
     } catch (error) {
       console.error('❌ Error connecting SSE transport:', error);
-      res.status(500).end();
+      if (transport) {
+        connections.delete(transport.sessionId);
+      }
+      await mcpServer?.close().catch((err) => {
+        console.error('Error closing MCP server:', err);
+      });
+      if (!res.headersSent) {
+        res.status(500).end();
+      } else {
+        res.end();
+      }
     }
   });
 
   // POST endpoint for MCP messages
-  app.post('/messages', async (_req: Request, res: Response) => {
+  app.post('/messages', async (req: Request, res: Response) => {
     try {
-      // The SSE transport handles messages internally
-      // This endpoint is primarily for the MCP protocol flow
-      res.status(202).json({ accepted: true });
+      const sessionIdParam = req.query.sessionId;
+      const sessionId =
+        typeof sessionIdParam === 'string'
+          ? sessionIdParam
+          : Array.isArray(sessionIdParam)
+            ? sessionIdParam.find((value): value is string => typeof value === 'string')
+            : undefined;
+      const headerSessionId = req.header('mcp-session-id');
+      const activeSessionId = sessionId ?? headerSessionId;
+
+      if (!activeSessionId) {
+        res.status(400).json({
+          error: 'Missing session identifier',
+          message: 'Expected sessionId query parameter or mcp-session-id header',
+        });
+        return;
+      }
+
+      const connection = connections.get(activeSessionId);
+      if (!connection) {
+        res.status(404).json({
+          error: 'Session not found',
+          message: `No active SSE session for id ${activeSessionId}`,
+        });
+        return;
+      }
+
+      await connection.transport.handlePostMessage(req, res, req.body);
     } catch (error) {
       console.error('Error handling message:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : String(error),
-      });
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   });
 
