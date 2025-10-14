@@ -3,9 +3,11 @@
  * Demonstrates multi-provider support with the new declarative API
  */
 
-import { componentResponse, createApp, textResponse } from '@unido/core';
-import { openAI } from '@unido/provider-openai';
+import { fileURLToPath } from 'node:url';
+import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
+import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
+import type { WeatherCardProps } from './components/WeatherCard.js';
 
 // ============================================================================
 // Mock Weather API
@@ -17,6 +19,7 @@ interface WeatherData {
   condition: string;
   humidity: number;
   units: 'celsius' | 'fahrenheit';
+  updatedAt: string;
 }
 
 async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Promise<WeatherData> {
@@ -32,6 +35,7 @@ async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Prom
     condition: conditions[conditionIndex] || 'Sunny',
     humidity: 60 + Math.random() * 30,
     units,
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -49,6 +53,26 @@ const app = createApp({
 });
 
 // ============================================================================
+// Register Components
+// ============================================================================
+
+const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
+
+app.component({
+  type: 'weather-card',
+  title: 'Weather Card',
+  description: 'Displays temperature, condition, and humidity for a city.',
+  sourcePath: weatherCardPath,
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true,
+      },
+    },
+  },
+});
+
+// ============================================================================
 // Register Tools
 // ============================================================================
 
@@ -60,12 +84,22 @@ app.tool('get_weather', {
     units: z.enum(['celsius', 'fahrenheit']).default('celsius').describe('Temperature units'),
   }),
   handler: async ({ city, units }) => {
-    const data = await fetchWeather(city, units ?? 'celsius');
+    const resolvedUnits = units ?? 'celsius';
+    const data = await fetchWeather(city, resolvedUnits);
+
+    const cardProps: WeatherCardProps = {
+      city: data.city,
+      temperature: data.temperature,
+      condition: data.condition,
+      humidity: data.humidity,
+      units: resolvedUnits,
+      updatedAt: data.updatedAt,
+    };
 
     return componentResponse(
       'weather-card',
-      data as unknown as Record<string, unknown>,
-      `Weather in ${city}: ${Math.round(data.temperature)}°${units === 'celsius' ? 'C' : 'F'}, ${data.condition}`
+      cardProps as unknown as Record<string, unknown>,
+      `Weather in ${city}: ${Math.round(data.temperature)}°${resolvedUnits === 'celsius' ? 'C' : 'F'}, ${data.condition}`
     );
   },
 });

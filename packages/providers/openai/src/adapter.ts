@@ -8,15 +8,17 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
   ComponentReference,
+  ComponentDefinition,
   ProviderCapabilities,
   ServerConfig,
   ToolContext,
   UniversalResponse,
   UniversalTool,
-} from '@unido/core';
+} from '@bandofai/unido-core';
 import {
   BaseProviderAdapter,
   type ProviderResponse,
@@ -24,18 +26,32 @@ import {
   type ProviderServer,
   type ProviderServerInfo,
   type ProviderToolDefinition,
-} from '@unido/provider-base';
+} from '@bandofai/unido-provider-base';
 import {
+  type McpResource,
   type OpenAIComponentMetadata,
+  createComponentResource,
+  createOpenAIMetadata,
   generateResourceUri,
-} from '@unido/provider-openai/resource.js';
-import { zodToJsonSchema } from '@unido/provider-openai/schema.js';
-import { type OpenAIHttpServer, createHttpServer } from '@unido/provider-openai/server.js';
+  generateComponentHtml,
+} from '@bandofai/unido-provider-openai/resource.js';
+import { zodToJsonSchema } from '@bandofai/unido-provider-openai/schema.js';
+import { type OpenAIHttpServer, createHttpServer } from '@bandofai/unido-provider-openai/server.js';
+import { bundleComponents, type BundledComponent } from './bundler.js';
 import type { z } from 'zod';
 
 // ============================================================================
 // OpenAI Adapter
 // ============================================================================
+
+interface ComponentResourceEntry {
+  definition: ComponentDefinition;
+  bundle: BundledComponent;
+  resource: McpResource;
+  metadata: OpenAIComponentMetadata;
+  html: string;
+  dataUrl: string;
+}
 
 export class OpenAIAdapter extends BaseProviderAdapter {
   readonly name = 'openai' as const;
@@ -52,6 +68,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   private httpServer?: OpenAIHttpServer;
   private port = 3000;
   private host = 'localhost';
+  private componentResourcesByUri = new Map<string, ComponentResourceEntry>();
+  private componentResourcesByType = new Map<string, ComponentResourceEntry>();
 
   // =========================================================================
   // Initialization
@@ -68,6 +86,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     if (providerConfig?.host) {
       this.host = providerConfig.host as string;
     }
+
+    await this.prepareComponents(config.components ?? []);
 
     // Create MCP server
     this.mcpServer = new Server(
@@ -86,7 +106,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     // Set up tool handlers using MCP SDK schemas
     this.mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
-        tools: config.tools.map((tool) => {
+        tools: config.tools.map((tool: UniversalTool) => {
           const converted = this.convertTool(tool);
           return {
             name: converted.name,
@@ -100,7 +120,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     this.mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
-      const tool = config.tools.find((t) => t.name === name);
+      const tool = config.tools.find((t: UniversalTool) => t.name === name);
       if (!tool) {
         throw new Error(`Tool not found: ${name}`);
       }
@@ -115,10 +135,29 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     // Register resources handler for components
     this.mcpServer.setRequestHandler(ListResourcesRequestSchema, async () => {
-      // Return list of component resources
-      // This would be populated based on registered components
       return {
-        resources: [],
+        resources: Array.from(this.componentResourcesByUri.values()).map(
+          (entry) => entry.resource
+        ),
+      };
+    });
+
+    this.mcpServer.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const uri = request.params.uri;
+      const entry = this.componentResourcesByUri.get(uri);
+
+      if (!entry) {
+        throw new Error(`Resource not found: ${uri}`);
+      }
+
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: entry.resource.mimeType,
+            text: entry.html,
+          },
+        ],
       };
     });
   }
@@ -160,7 +199,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
   convertResponse(response: UniversalResponse, _tool?: UniversalTool): ProviderResponse {
     // Convert content to MCP format
-    const content = response.content.map((item) => {
+    const content = response.content.map((item: UniversalResponse['content'][number]) => {
       switch (item.type) {
         case 'text':
           return {
@@ -192,8 +231,9 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     const metadata: Record<string, unknown> = {};
 
     if (response.component) {
-      const componentMeta = this.convertComponentMetadata(response.component);
-      Object.assign(metadata, componentMeta);
+      const componentMeta = this.convertComponent(response.component);
+      const metaRecord = this.buildComponentMetaRecord(componentMeta, response.component);
+      Object.assign(metadata, metaRecord);
     }
 
     // Merge with any existing metadata
@@ -211,18 +251,136 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   // Component Handling
   // =========================================================================
 
-  convertComponent(component: ComponentReference): OpenAIComponentMetadata {
-    return this.convertComponentMetadata(component);
+  private async prepareComponents(components: ComponentDefinition[]): Promise<void> {
+    this.componentResourcesByUri.clear();
+    this.componentResourcesByType.clear();
+
+    if (!components || components.length === 0) {
+      return;
+    }
+
+    const bundles = await bundleComponents(components);
+
+    for (const component of components) {
+      const bundled = bundles.get(component.type);
+
+      if (!bundled) {
+        console.warn(`⚠️  Skipping component "${component.type}" - bundle not generated.`);
+        continue;
+      }
+
+      const dataUrl = this.createModuleDataUrl(bundled.code);
+      const html = generateComponentHtml(dataUrl, component.type);
+      const resource = createComponentResource(component, dataUrl);
+      const metadata = this.createComponentOpenAIMetadata(component);
+
+      const entry: ComponentResourceEntry = {
+        definition: component,
+        bundle: bundled,
+        resource,
+        metadata,
+        html,
+        dataUrl,
+      };
+
+      this.componentResourcesByUri.set(resource.uri, entry);
+      this.componentResourcesByType.set(component.type, entry);
+    }
   }
 
-  private convertComponentMetadata(component: ComponentReference): OpenAIComponentMetadata {
+  private createModuleDataUrl(code: string): string {
+    const encoded = Buffer.from(code, 'utf8').toString('base64');
+    return `data:text/javascript;base64,${encoded}`;
+  }
+
+  private createComponentOpenAIMetadata(component: ComponentDefinition): OpenAIComponentMetadata {
+    const widgetAccessible = this.extractWidgetAccessibleFromDefinition(component);
+
+    return createOpenAIMetadata(component, {
+      widgetAccessible,
+    });
+  }
+
+  convertComponent(component: ComponentReference): OpenAIComponentMetadata {
+    return this.getComponentMetadata(component);
+  }
+
+  private getComponentMetadata(component: ComponentReference): OpenAIComponentMetadata {
+    const entry = this.componentResourcesByType.get(component.type);
+    const widgetAccessibleOverride = this.extractWidgetAccessibleFromReference(component);
+
+    if (entry) {
+      return {
+        ...entry.metadata,
+        widgetAccessible:
+          widgetAccessibleOverride ?? entry.metadata.widgetAccessible ?? false,
+      };
+    }
+
     const resourceUri = generateResourceUri(component.type);
-    const widgetAccessible = component.metadata?.widgetAccessible;
 
     return {
       outputTemplate: resourceUri,
-      widgetAccessible: typeof widgetAccessible === 'boolean' ? widgetAccessible : false,
+      widgetAccessible: widgetAccessibleOverride ?? false,
     };
+  }
+
+  private buildComponentMetaRecord(
+    metadata: OpenAIComponentMetadata,
+    component?: ComponentReference
+  ): Record<string, unknown> {
+    const record: Record<string, unknown> = {};
+
+    if (metadata.outputTemplate) {
+      record['openai/outputTemplate'] = metadata.outputTemplate;
+    }
+
+    if (typeof metadata.widgetAccessible === 'boolean') {
+      record['openai/widgetAccessible'] = metadata.widgetAccessible;
+    }
+
+    if (metadata.description) {
+      record['openai/description'] = metadata.description;
+    }
+
+    if (component?.metadata) {
+      for (const [key, value] of Object.entries(component.metadata)) {
+        if (key.startsWith('openai/')) {
+          record[key] = value;
+        }
+      }
+    }
+
+    return record;
+  }
+
+  private extractWidgetAccessibleFromDefinition(
+    component: ComponentDefinition
+  ): boolean | undefined {
+    const providerMetadata = component.metadata?.openai;
+    const renderHints = providerMetadata?.renderHints as Record<string, unknown> | undefined;
+    const widgetAccessible = renderHints?.widgetAccessible;
+
+    return typeof widgetAccessible === 'boolean' ? widgetAccessible : undefined;
+  }
+
+  private extractWidgetAccessibleFromReference(
+    component: ComponentReference
+  ): boolean | undefined {
+    if (!component.metadata) {
+      return undefined;
+    }
+
+    if (typeof (component.metadata as Record<string, unknown>).widgetAccessible === 'boolean') {
+      return (component.metadata as Record<string, unknown>).widgetAccessible as boolean;
+    }
+
+    const openaiMetadata = (component.metadata as Record<string, unknown>)['openai/widgetAccessible'];
+    if (typeof openaiMetadata === 'boolean') {
+      return openaiMetadata;
+    }
+
+    return undefined;
   }
 
   // =========================================================================
@@ -322,6 +480,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
   async cleanup(): Promise<void> {
     await this.stopServer();
+    this.componentResourcesByUri.clear();
+    this.componentResourcesByType.clear();
     await super.cleanup();
   }
 }

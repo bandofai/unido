@@ -7,7 +7,7 @@ import {
   describe as describeSchema,
   getProviderSchema,
   validateInput,
-} from '@unido/core/schema.js';
+} from '@bandofai/unido-core/schema.js';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -191,7 +191,7 @@ describe('getProviderSchema', () => {
     expect(conversionCount).toBe(1); // Still 1, not incremented
 
     // Different provider - should convert again
-    getProviderSchema(schema, 'claude', converter);
+    getProviderSchema(schema, 'gemini', converter);
     expect(conversionCount).toBe(2);
   });
 
@@ -199,17 +199,17 @@ describe('getProviderSchema', () => {
     const schema = createSchema(z.object({ id: z.string() }));
 
     const openaiConverter = () => ({ provider: 'openai', format: 'json' });
-    const claudeConverter = () => ({ provider: 'claude', format: 'json' });
+    const geminiConverter = () => ({ provider: 'gemini', format: 'json' });
 
     const openaiSchema = getProviderSchema(schema, 'openai', openaiConverter);
-    const claudeSchema = getProviderSchema(schema, 'claude', claudeConverter);
+    const geminiSchema = getProviderSchema(schema, 'gemini', geminiConverter);
 
     expect(openaiSchema).toEqual({ provider: 'openai', format: 'json' });
-    expect(claudeSchema).toEqual({ provider: 'claude', format: 'json' });
+    expect(geminiSchema).toEqual({ provider: 'gemini', format: 'json' });
 
     // Both should be cached
     expect(schema._cache?.has('openai')).toBe(true);
-    expect(schema._cache?.has('claude')).toBe(true);
+    expect(schema._cache?.has('gemini')).toBe(true);
   });
 });
 

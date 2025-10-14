@@ -1,33 +1,33 @@
 /**
- * @unido/core
+ * @bandofai/unido-core
  * Unido - Provider-agnostic TypeScript framework for AI applications
  */
 
 // Main API
-export { createApp, Unido } from '@unido/core/app.js';
-export type { AppConfig } from '@unido/core/app.js';
+export { createApp, Unido } from '@bandofai/unido-core/app.js';
+export type { AppConfig } from '@bandofai/unido-core/app.js';
 
 // Tool system
-export { createTool, ToolRegistry } from '@unido/core/tool.js';
+export { createTool, ToolRegistry } from '@bandofai/unido-core/tool.js';
 export {
   textResponse,
   componentResponse,
   mixedResponse,
   errorResponse,
-} from '@unido/core/tool.js';
-export type { ToolDefinition } from '@unido/core/tool.js';
+} from '@bandofai/unido-core/tool.js';
+export type { ToolDefinition } from '@bandofai/unido-core/tool.js';
 
 // Schema system
-export { createSchema, validateInput, getProviderSchema } from '@unido/core/schema.js';
-export type { UniversalSchema, InferSchema } from '@unido/core/schema.js';
+export { createSchema, validateInput, getProviderSchema } from '@bandofai/unido-core/schema.js';
+export type { UniversalSchema, InferSchema } from '@bandofai/unido-core/schema.js';
 
 // Component system
-export { ComponentRegistry, defineComponent } from '@unido/core/component.js';
+export { ComponentRegistry, defineComponent } from '@bandofai/unido-core/component.js';
 export type {
   ComponentDefinition,
   ComponentBundle,
   ComponentMetadata,
-} from '@unido/core/component.js';
+} from '@bandofai/unido-core/types.js';
 
 // Core types
 export type {
@@ -44,8 +44,7 @@ export type {
   ToolHandler,
   ProviderMetadata,
   OpenAIMetadata,
-  ClaudeMetadata,
   ProviderCapabilities,
   ServerConfig,
   ProviderConfig,
-} from '@unido/core/types.js';
+} from '@bandofai/unido-core/types.js';

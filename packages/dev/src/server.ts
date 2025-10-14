@@ -2,8 +2,8 @@
  * Multi-provider development server
  */
 
-import type { Unido } from '@unido/core';
-import type { ProviderAdapter } from '@unido/provider-base';
+import type { Unido } from '@bandofai/unido-core';
+import type { ProviderAdapter } from '@bandofai/unido-provider-base';
 
 export interface DevServerOptions {
   /**

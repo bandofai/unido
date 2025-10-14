@@ -12,7 +12,7 @@ import type { z } from 'zod';
 /**
  * Known provider types with autocomplete support
  */
-export type KnownProvider = 'openai' | 'claude' | 'gemini';
+export type KnownProvider = 'openai';
 
 /**
  * Custom provider names must be prefixed with 'custom:'
@@ -61,6 +61,76 @@ export interface ErrorContent {
 }
 
 export type UniversalContent = TextContent | ImageContent | ResourceContent | ErrorContent;
+
+// ============================================================================
+// Component Definitions
+// ============================================================================
+
+export interface ComponentMetadata {
+  /**
+   * Custom bundle configuration
+   */
+  bundleConfig?: Record<string, unknown>;
+
+  /**
+   * Provider-specific rendering hints
+   */
+  renderHints?: Record<string, unknown>;
+}
+
+export interface ComponentDefinition {
+  /**
+   * Component type/name (e.g., "weather-card")
+   */
+  type: string;
+
+  /**
+   * Human-readable title
+   */
+  title?: string;
+
+  /**
+   * Component description
+   */
+  description?: string;
+
+  /**
+   * Path to component source file (React component)
+   */
+  sourcePath: string;
+
+  /**
+   * Provider-specific metadata
+   */
+  metadata?: Partial<Record<ProviderName, ComponentMetadata>>;
+}
+
+export interface ComponentBundle {
+  /**
+   * Component type
+   */
+  type: string;
+
+  /**
+   * Bundled JavaScript code
+   */
+  code: string;
+
+  /**
+   * Bundle URL (when served)
+   */
+  url?: string;
+
+  /**
+   * Source map (optional)
+   */
+  sourceMap?: string;
+
+  /**
+   * Provider this bundle is for
+   */
+  provider: ProviderName;
+}
 
 // ============================================================================
 // Component Reference
@@ -182,11 +252,6 @@ export interface ProviderMetadata {
   openai?: OpenAIMetadata;
 
   /**
-   * Claude-specific metadata
-   */
-  claude?: ClaudeMetadata;
-
-  /**
    * Custom provider metadata
    */
   [provider: string]: unknown;
@@ -205,13 +270,6 @@ export interface OpenAIMetadata {
 
   /**
    * Additional OpenAI metadata
-   */
-  [key: string]: unknown;
-}
-
-export interface ClaudeMetadata {
-  /**
-   * Claude-specific metadata (to be defined based on research)
    */
   [key: string]: unknown;
 }
@@ -271,6 +329,11 @@ export interface ServerConfig {
    * Registered tools
    */
   tools: UniversalTool[];
+
+  /**
+   * Registered components
+   */
+  components?: ComponentDefinition[];
 
   /**
    * Provider-specific configuration

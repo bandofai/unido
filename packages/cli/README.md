@@ -1,255 +1,393 @@
 # create-unido
 
-Official CLI tool for scaffolding [Unido](https://github.com/yourusername/unido) projects.
+**The fastest way to create a new Unido application.**
+
+[![npm version](https://img.shields.io/npm/v/create-unido)](https://www.npmjs.com/package/create-unido)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
+## Quick Start
+
+```bash
+# Using pnpm (recommended)
+pnpm create unido
+
+# Using npm
+npm create unido
+
+# Using npx
+npx create-unido
+```
+
+That's it! The CLI will guide you through creating your new Unido app.
+
+---
+
+## What You Get
+
+The CLI scaffolds a complete Unido application with:
+
+- ✅ **TypeScript configuration** - Strict mode, ES modules, proper paths
+- ✅ **Build scripts** - dev, build, start commands ready to go
+- ✅ **Example code** - Working tools based on your template choice
+- ✅ **Git initialization** - Optional git repo setup
+- ✅ **Dependency installation** - Auto-installs with your preferred package manager
+
+---
 
 ## Usage
 
-The easiest way to create a new Unido project is to use `pnpm create`, `npm create`, or `npx`:
-
-```bash
-# With pnpm (recommended)
-pnpm create unido
-
-# With npm
-npm create unido
-
-# With npx
-npx create-unido
-
-# With yarn
-yarn create unido
-```
-
 ### Interactive Mode (Recommended)
 
-Simply run the command without arguments for an interactive setup:
+Just run the command and answer the prompts:
 
 ```bash
 pnpm create unido
 ```
 
-The CLI will prompt you for:
-- Project name
-- Template selection (basic or weather)
+You'll be asked:
 
-**Note:** All projects use OpenAI ChatGPT as the AI provider.
+1. **Project name** - Name of your application
+2. **Template** - Choose from:
+   - **Basic** - Simple starter with calculator and greet tools
+   - **Weather** - Complete weather app example
 
 ### Non-Interactive Mode
 
+Pass options via command line:
+
 ```bash
-pnpm create unido my-app --template basic
+pnpm create unido my-app -t basic --skip-git --skip-install
 ```
 
-### Options
+#### Options
 
-```
-Options:
-  -V, --version              output the version number
-  -t, --template <template>  Template to use (basic, weather)
-  --skip-install             Skip npm install
-  --skip-git                 Skip git initialization
-  -h, --help                 display help for command
-```
+| Option | Alias | Description | Default |
+|--------|-------|-------------|---------|
+| `--template <template>` | `-t` | Template to use (`basic` or `weather`) | prompt |
+| `--skip-install` | | Skip dependency installation | `false` |
+| `--skip-git` | | Skip git initialization | `false` |
+
+---
 
 ## Templates
 
-### 1. Basic Template
+### Basic Template
 
-Minimal setup with example tools:
-- Greet tool - Simple greeting function
-- Calculate tool - Basic arithmetic operations
+Perfect for getting started. Includes:
 
-```bash
-pnpm create unido my-app --template basic --provider openai
-```
+- Simple greet tool
+- Calculator tool with multiple operations
+- Type-safe handlers with Zod
+- OpenAI provider configuration
 
-### 2. Weather Template
-
-Complete weather application example:
-- Get weather tool - Fetch weather data
-- Search cities tool - Find cities by name
-- Component responses - UI-enhanced output
+**Use when:** You want a minimal starting point to build your own tools.
 
 ```bash
-pnpm create unido weather-app --template weather --provider claude
+pnpm create unido my-app -t basic
 ```
 
-### 3. Multi-Provider Template
+### Weather Template
 
-Advanced setup with both OpenAI and Claude:
-- Echo tool - Test tool for both providers
-- Provider info tool - Shows current provider details
-- Demonstrates multi-provider architecture
+A complete example application. Includes:
+
+- Weather lookup tool
+- City search tool
+- Component responses
+- External API integration patterns
+- Error handling examples
+
+**Use when:** You want to see a real-world example before building your own.
 
 ```bash
-pnpm create unido multi-app --template multi-provider
+pnpm create unido weather-app -t weather
 ```
 
-## Provider Options
+---
 
-### OpenAI ChatGPT
+## What Happens During Setup
 
-Uses HTTP + SSE transport for real-time communication:
+1. **Creates project directory**
+   ```
+   my-app/
+   ├── src/
+   │   └── index.ts       # Your application code
+   ├── package.json
+   ├── tsconfig.json
+   ├── .gitignore
+   └── README.md
+   ```
 
-```bash
-pnpm create unido my-app --provider openai
-```
+2. **Installs dependencies**
+   - `@bandofai/unido-core` - Core framework
+   - `@bandofai/unido-provider-openai` - OpenAI adapter
+   - `zod` - Schema validation
+   - `typescript`, `tsx`, `@types/node` - Dev dependencies
 
-**Setup**:
-1. Run `npm run dev`
-2. Server starts on http://localhost:3000
-3. Add to ChatGPT: Settings → Custom Tools → Add Server
+3. **Initializes git** (unless `--skip-git`)
+   - Creates `.git` directory
+   - Makes initial commit
 
-### Anthropic Claude Desktop
+4. **Shows next steps**
+   - How to start dev server
+   - How to connect to ChatGPT
+   - Links to documentation
 
-Uses stdio transport for local communication:
+---
 
-```bash
-pnpm create unido my-app --provider claude
-```
+## After Creation
 
-**Setup**:
-1. Build app: `npm run build`
-2. Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
-3. Add your app to `mcpServers`
-4. Restart Claude Desktop
-
-### Both Providers
-
-Create an app that works with both:
-
-```bash
-pnpm create unido my-app --provider both
-```
-
-## Examples
-
-### Quick Start
-
-```bash
-# Interactive
-pnpm create unido
-
-# Basic OpenAI app
-pnpm create unido my-openai-app --template basic --provider openai
-
-# Weather app for Claude
-pnpm create unido weather-claude --template weather --provider claude
-
-# Multi-provider setup
-pnpm create unido universal-app --template multi-provider
-```
-
-### Skip Installation
-
-```bash
-pnpm create unido my-app --skip-install
-cd my-app
-npm install
-```
-
-### Skip Git
-
-```bash
-pnpm create unido my-app --skip-git
-```
-
-## Generated Project Structure
-
-```
-my-app/
-├── src/
-│   └── index.ts          # Main application
-├── dist/                 # Build output
-├── node_modules/
-├── .gitignore
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## Development Workflow
-
-After creating your project:
+### Start Development Server
 
 ```bash
 cd my-app
-
-# Development with hot reload
-npm run dev
-
-# Build for production
-npm run build
-
-# Run built application
-npm start
-
-# Type checking
-npm run type-check
+pnpm run dev
 ```
 
-## Dependencies
+Your server will start on `http://localhost:3000`.
 
-The CLI will install appropriate dependencies based on your provider selection:
+### Connect to ChatGPT
 
-### All Projects
-- `@unido/core` - Core framework
-- `zod` - Schema validation
-- `typescript` - TypeScript compiler
-- `tsx` - TypeScript execution for development
+1. Open ChatGPT
+2. Go to **Settings → Custom Tools → Add Server**
+3. Enter `http://localhost:3000`
+4. Start chatting! ChatGPT can now use your tools.
 
-### OpenAI Projects
-- `@unido/provider-openai` - OpenAI adapter with HTTP + SSE
+### Build for Production
 
-### Claude Projects
-- `@unido/provider-claude` - Claude adapter with stdio
-
-## Troubleshooting
-
-### "command not found: create-unido"
-
-Make sure you're using `npx`:
 ```bash
-npx create-unido my-app
+pnpm run build
+pnpm start
 ```
 
-### "Directory already exists"
+---
 
-Choose a different project name or remove the existing directory:
+## Manual Setup Alternative
+
+If you prefer not to use the CLI, you can set up manually:
+
+### 1. Create project
+
 ```bash
-rm -rf my-app
-npx create-unido my-app
+mkdir my-app && cd my-app
+pnpm init
 ```
 
-### Installation fails
+### 2. Install dependencies
 
-Use `--skip-install` and install manually:
 ```bash
-npx create-unido my-app --skip-install
-cd my-app
-npm install
+pnpm add @bandofai/unido-core @bandofai/unido-provider-openai zod
+pnpm add -D typescript @types/node tsx
 ```
 
-### Port 3000 already in use (OpenAI)
+### 3. Create tsconfig.json
 
-Edit `src/index.ts` and change the port:
-```typescript
-providers: {
-  openai: { enabled: true, port: 3001 } // Changed from 3000
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
 }
 ```
 
-## Requirements
+### 4. Update package.json
 
-- Node.js >= 18.0.0
-- npm, pnpm, or yarn
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  }
+}
+```
 
-## Learn More
+### 5. Create src/index.ts
 
-- [Unido Documentation](https://github.com/yourusername/unido)
-- [OpenAI Custom Tools](https://platform.openai.com/docs/guides/custom-tools)
-- [Claude Desktop MCP](https://docs.anthropic.com/claude/docs/desktop-mcp)
+```typescript
+import { createApp, textResponse } from '@bandofai/unido-core';
+import { openAI } from '@bandofai/unido-provider-openai';
+import { z } from 'zod';
+
+const app = createApp({
+  name: 'my-app',
+  version: '1.0.0',
+  providers: {
+    openai: openAI({ port: 3000 })
+  }
+});
+
+app.tool('greet', {
+  title: 'Greet User',
+  description: 'Greet a user by name',
+  input: z.object({
+    name: z.string()
+  }),
+  handler: async ({ name }) => {
+    return textResponse(`Hello, ${name}!`);
+  }
+});
+
+await app.listen();
+```
+
+---
+
+## Customization
+
+### Change Port
+
+Edit the port in your generated `src/index.ts`:
+
+```typescript
+providers: {
+  openai: openAI({ port: 3001 })  // Changed from 3000
+}
+```
+
+### Add More Tools
+
+Add additional tools after the generated ones:
+
+```typescript
+app.tool('my_custom_tool', {
+  title: 'My Custom Tool',
+  description: 'Does something custom',
+  input: z.object({
+    param: z.string()
+  }),
+  handler: async ({ param }) => {
+    return textResponse(`You said: ${param}`);
+  }
+});
+```
+
+---
+
+## Troubleshooting
+
+### "Command not found: create-unido"
+
+Make sure you're using `pnpm create unido` (with space) not `pnpm create-unido`.
+
+### Installation fails
+
+Try running with verbose output:
+
+```bash
+pnpm create unido --verbose
+```
+
+Or skip installation and install manually:
+
+```bash
+pnpm create unido --skip-install
+cd my-app
+pnpm install
+```
+
+### "tsx: command not found"
+
+Install tsx globally or run via npx:
+
+```bash
+pnpm add -g tsx
+# or
+npx tsx src/index.ts
+```
+
+### Port already in use
+
+Change the port in your config or kill the process using port 3000:
+
+```bash
+# Find process
+lsof -i :3000
+
+# Kill it
+kill -9 <PID>
+```
+
+---
+
+## Package Manager Support
+
+create-unido auto-detects your package manager:
+
+- **pnpm** - Detected from `pnpm-lock.yaml` or `pnpm` in command
+- **npm** - Used by default
+- **yarn** - Detected from `yarn.lock`
+
+Force a specific package manager:
+
+```bash
+npm create unido   # Forces npm
+pnpm create unido  # Forces pnpm
+yarn create unido  # Forces yarn
+```
+
+---
+
+## Development
+
+Want to contribute to the CLI? Here's how to set it up locally:
+
+```bash
+# Clone repo
+git clone https://github.com/bandofai/unido.git
+cd unido/packages/cli
+
+# Install dependencies
+pnpm install
+
+# Build
+pnpm run build
+
+# Test locally
+pnpm link --global
+create-unido test-app
+```
+
+---
+
+## Version History
+
+### 0.2.6 (Latest)
+- ✨ Use factory functions (openAI())
+- 🐛 Fix TypeScript type errors in templates
+- 📝 Better error messages
+
+### 0.2.5
+- 🔧 Update to @bandofai scoped packages
+- ✅ All core packages published to npm
+
+### 0.2.0
+- 🎉 Initial public release
+- ✨ Interactive CLI
+- 📦 Basic and weather templates
+- 🔧 Auto dependency installation
+
+---
+
+## Links
+
+- **[Main Documentation](../../README.md)** - Unido framework docs
+- **[npm Package](https://www.npmjs.com/package/create-unido)** - View on npm
+- **[Report Issue](https://github.com/bandofai/unido/issues)** - Bug reports
+- **[Examples](../../examples/)** - More example apps
+
+---
 
 ## License
 
-MIT
+MIT License - see [LICENSE](../../LICENSE) for details.
+
+---
+
+**Built with ❤️ by the Unido team**

@@ -2,7 +2,7 @@
  * Tests for OpenAI schema conversion
  */
 
-import { validateMcpSchema, zodToJsonSchema } from '@unido/provider-openai/schema.js';
+import { validateMcpSchema, zodToJsonSchema } from '@bandofai/unido-provider-openai/schema.js';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 

@@ -29,15 +29,18 @@ importers:
 
   examples/weather-app:
     dependencies:
-      '@unido/core':
+      '@bandofai/unido-components':
+        specifier: workspace:*
+        version: link:../../packages/components
+      '@bandofai/unido-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@bandofai/unido-provider-openai':
+        specifier: workspace:*
+        version: link:../../packages/providers/openai
       '@unido/dev':
         specifier: workspace:*
         version: link:../../packages/dev
-      '@unido/provider-openai':
-        specifier: workspace:*
-        version: link:../../packages/providers/openai
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -45,6 +48,12 @@ importers:
       '@types/node':
         specifier: ^22.10.7
         version: 22.18.9
+      '@types/react':
+        specifier: ^18.3.18
+        version: 18.3.26
+      '@types/react-dom':
+        specifier: ^18.3.5
+        version: 18.3.7(@types/react@18.3.26)
       tsx:
         specifier: ^4.19.2
         version: 4.20.6
@@ -76,7 +85,7 @@ importers:
 
   packages/components:
     dependencies:
-      '@unido/core':
+      '@bandofai/unido-core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -114,10 +123,10 @@ importers:
 
   packages/dev:
     dependencies:
-      '@unido/core':
+      '@bandofai/unido-core':
         specifier: workspace:*
         version: link:../core
-      '@unido/provider-base':
+      '@bandofai/unido-provider-base':
         specifier: workspace:*
         version: link:../providers/base
     devDependencies:
@@ -130,41 +139,13 @@ importers:
 
   packages/providers/base:
     dependencies:
-      '@unido/core':
-        specifier: workspace:*
-        version: link:../../core
+      '@bandofai/unido-core':
+        specifier: ^0.1.0
+        version: 0.1.1
       zod:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.9(@types/node@22.18.9)(@vitest/ui@2.1.9)
-
-  packages/providers/claude:
-    dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.0.6
-        version: 1.20.0
-      '@unido/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@unido/provider-base':
-        specifier: workspace:*
-        version: link:../base
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-      zod-to-json-schema:
-        specifier: ^3.24.1
-        version: 3.24.6(zod@3.25.76)
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.7
-        version: 22.18.9
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -174,6 +155,12 @@ importers:
 
   packages/providers/openai:
     dependencies:
+      '@bandofai/unido-core':
+        specifier: ^0.1.0
+        version: 0.1.1
+      '@bandofai/unido-provider-base':
+        specifier: ^0.1.0
+        version: 0.1.1(@bandofai/unido-core@0.1.1)
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.6
         version: 1.20.0
@@ -183,15 +170,12 @@ importers:
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.3
-      '@unido/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@unido/provider-base':
-        specifier: workspace:*
-        version: link:../base
       cors:
         specifier: ^2.8.5
         version: 2.8.5
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.10
       express:
         specifier: ^5.1.0
         version: 5.1.0
@@ -205,6 +189,18 @@ importers:
       '@types/node':
         specifier: ^22.10.7
         version: 22.18.9
+      '@types/react':
+        specifier: ^18.3.18
+        version: 18.3.26
+      '@types/react-dom':
+        specifier: ^18.3.5
+        version: 18.3.7(@types/react@18.3.26)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -213,6 +209,16 @@ importers:
         version: 2.1.9(@types/node@22.18.9)(@vitest/ui@2.1.9)
 
 packages:
+
+  '@bandofai/unido-core@0.1.1':
+    resolution: {integrity: sha512-hRK9QLA5LAUbQFwkM/yvJ3cOSfVN/JBXIp8BWanC/Vn3ZP2hvbQAi6f3SKFhHlk/4u3nhw3l3KXg/oKgxwUBpg==}
+    engines: {node: '>=18.0.0'}
+
+  '@bandofai/unido-provider-base@0.1.1':
+    resolution: {integrity: sha512-Zkl6V8Czpq76kHwNkhauYHSEvByA29h+ow2kKPIIbMWCbc1doPdKSNtBJmdpJBKy7yPAjHNeVmxYodC+GOZuGw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@bandofai/unido-core': ^0.1.0
 
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
@@ -1809,6 +1815,15 @@ packages:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
+
+  '@bandofai/unido-core@0.1.1':
+    dependencies:
+      zod: 3.25.76
+
+  '@bandofai/unido-provider-base@0.1.1(@bandofai/unido-core@0.1.1)':
+    dependencies:
+      '@bandofai/unido-core': 0.1.1
+      zod: 3.25.76
 
   '@bcoe/v8-coverage@1.0.2': {}
 

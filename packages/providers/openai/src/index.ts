@@ -1,12 +1,12 @@
 /**
- * @unido/provider-openai
+ * @bandofai/unido-provider-openai
  * OpenAI ChatGPT provider adapter for Unido
  */
 
-import { OpenAIAdapter } from '@unido/provider-openai/adapter.js';
+import { OpenAIAdapter } from '@bandofai/unido-provider-openai/adapter.js';
 
-export { OpenAIAdapter, createOpenAIAdapter } from '@unido/provider-openai/adapter.js';
-export { zodToJsonSchema, validateMcpSchema } from '@unido/provider-openai/schema.js';
+export { OpenAIAdapter, createOpenAIAdapter } from '@bandofai/unido-provider-openai/adapter.js';
+export { zodToJsonSchema, validateMcpSchema } from '@bandofai/unido-provider-openai/schema.js';
 export {
   generateResourceUri,
   createComponentResource,
@@ -14,7 +14,7 @@ export {
   createOpenAIMetadata,
   type McpResource,
   type OpenAIComponentMetadata,
-} from '@unido/provider-openai/resource.js';
+} from '@bandofai/unido-provider-openai/resource.js';
 
 // ============================================================================
 // Factory Function
@@ -64,8 +64,8 @@ export interface OpenAIProviderConfig extends OpenAIProviderOptions {
  *
  * @example
  * ```typescript
- * import { createApp } from '@unido/core';
- * import { openAI } from '@unido/provider-openai';
+ * import { createApp } from '@bandofai/unido-core';
+ * import { openAI } from '@bandofai/unido-provider-openai';
  *
  * const app = createApp({
  *   name: 'my-app',

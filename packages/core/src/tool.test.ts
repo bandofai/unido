@@ -9,8 +9,8 @@ import {
   errorResponse,
   mixedResponse,
   textResponse,
-} from '@unido/core/tool.js';
-import type { ToolContext } from '@unido/core/types.js';
+} from '@bandofai/unido-core/tool.js';
+import type { ToolContext } from '@bandofai/unido-core/types.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 

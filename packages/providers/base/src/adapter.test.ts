@@ -8,7 +8,7 @@ import type {
   ToolContext,
   UniversalResponse,
   UniversalTool,
-} from '@unido/core';
+} from '@bandofai/unido-core';
 import {
   BaseProviderAdapter,
   type ProviderAdapter,
@@ -17,7 +17,7 @@ import {
   type ProviderServer,
   type ProviderServerInfo,
   type ProviderToolDefinition,
-} from '@unido/provider-base/adapter.js';
+} from '@bandofai/unido-provider-base/adapter.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 

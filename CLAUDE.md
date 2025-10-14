@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms (OpenAI ChatGPT, Anthropic Claude, Google Gemini, etc.). The core principle is "write once, run everywhere" - define tools and components once, deploy to any AI provider.
+**Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms (currently supporting OpenAI ChatGPT, with extensibility for future platforms). The core principle is "write once, run everywhere" - define tools and components once, deploy to any AI provider.
 
-**Status**: Core framework complete (v0.1.0), OpenAI adapter functional, ready for Claude/Gemini adapters.
+**Status**: Core framework complete (v0.1.0), OpenAI adapter functional and ready for use.
 
 ## Build & Development Commands
 
@@ -45,8 +45,8 @@ cd packages/core && pnpm run dev
 
 The framework uses an adapter pattern to abstract AI provider differences:
 
-1. **Universal API** (`@unido/core`): Developer-facing API using Zod schemas
-2. **Provider Adapters** (`@unido/provider-*`): Convert universal format to provider-specific protocols
+1. **Universal API** (`@bandofai/unido-core`): Developer-facing API using Zod schemas
+2. **Provider Adapters** (`@bandofai/unido-provider-*`): Convert universal format to provider-specific protocols
 3. **MCP Protocol**: All providers implement Model Context Protocol (v2025-06-18)
 
 ```typescript
@@ -61,30 +61,26 @@ app.tool('get_weather', {
 });
 
 // OpenAI adapter → MCP + HTTP/SSE + JSON Schema
-// Claude adapter → MCP + stdio + JSON Schema
-// Gemini adapter → Gemini protocol (future)
+// Future adapters can be added with provider-specific implementations
 ```
 
 ### Key Architectural Decisions
 
 **Zod for Schema Definition**: Runtime validation + compile-time types + converts to JSON Schema for MCP. All tool inputs use Zod schemas.
 
-**Component System**: Returns `UniversalResponse` with both `content` (text/images) and optional `component` (UI reference). Components adapt per provider:
+**Component System**: Returns `UniversalResponse` with both `content` (text/images) and optional `component` (UI reference). Components registered via `app.component()` are bundled on startup and exposed as MCP `ui://widget/...` resources so ChatGPT can fetch the HTML/JS bundle. Providers can adapt rendering strategies if they need something different:
 - OpenAI: React bundled to `ui://` resources
-- Claude: Text fallback (component support TBD)
+- Future providers: Can implement their own component rendering strategies
 
-**MCP as Foundation**: Both OpenAI and Claude use Model Context Protocol (JSON-RPC 2.0), but with different transports:
-- OpenAI: HTTP + Server-Sent Events
-- Claude: stdio (standard input/output)
+**MCP as Foundation**: OpenAI uses Model Context Protocol (JSON-RPC 2.0) with HTTP + Server-Sent Events transport. Future providers can implement MCP or other protocols as needed.
 
 ### Package Structure
 
 ```
-@unido/core              # Main API: createApp(), tool registration, Zod schemas
-@unido/provider-base     # ProviderAdapter interface, base implementation
-@unido/provider-openai   # OpenAI adapter with MCP SDK + zod-to-json-schema
-@unido/provider-claude   # (Ready for implementation)
-@unido/components        # React components (Card, etc.)
+@bandofai/unido-core              # Main API: createApp(), tool registration, Zod schemas
+@bandofai/unido-provider-base     # ProviderAdapter interface, base implementation
+@bandofai/unido-provider-openai   # OpenAI adapter with MCP SDK + zod-to-json-schema
+@bandofai/unido-components        # React components (Card, etc.)
 @unido/dev               # Development server utilities
 ```
 
@@ -94,18 +90,17 @@ app.tool('get_weather', {
 
 ```typescript
 // ✅ Correct
-import { createApp } from '@unido/core';
-import { ProviderAdapter } from '@unido/provider-base';
+import { createApp } from '@bandofai/unido-core';
+import { ProviderAdapter } from '@bandofai/unido-provider-base';
 
 // ❌ Wrong
 import { createApp } from '../../../core/src/index.js';
 ```
 
 Configured in [tsconfig.base.json](tsconfig.base.json):
-- `@unido/core` → `packages/core/src/`
-- `@unido/provider-base` → `packages/providers/base/src/`
-- `@unido/provider-openai` → `packages/providers/openai/src/`
-- `@unido/provider-claude` → `packages/providers/claude/src/`
+- `@bandofai/unido-core` → `packages/core/src/`
+- `@bandofai/unido-provider-base` → `packages/providers/base/src/`
+- `@bandofai/unido-provider-openai` → `packages/providers/openai/src/`
 
 ## Key Files & Responsibilities
 
@@ -150,7 +145,7 @@ Uses `@modelcontextprotocol/sdk` (v1.0.6) and `zod-to-json-schema` (v3.24.1).
 
 ### Creating a New Provider Adapter
 
-1. Implement `ProviderAdapter` interface from `@unido/provider-base`
+1. Implement `ProviderAdapter` interface from `@bandofai/unido-provider-base`
 2. Follow OpenAI adapter structure in [packages/providers/openai/](packages/providers/openai/)
 3. Handle schema conversion (Zod → Provider format)
 4. Implement transport layer (HTTP/stdio/WebSocket)
@@ -188,8 +183,8 @@ cd examples/weather-app && pnpm run dev
 
 Based on [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md):
 
-1. **Claude Adapter**: Implement stdio transport, test with Claude Desktop
-2. **HTTP Server for OpenAI**: Full SSE implementation (currently foundation only)
-3. **Component Bundler**: Automatic React → bundle for OpenAI (esbuild/Vite)
-4. **CLI Tool**: `create-unido` for project scaffolding
-5. **More Components**: List, Table, Chart, Form components
+1. **HTTP Server for OpenAI**: Full SSE implementation (currently foundation only)
+2. **Component Bundler**: Automatic React → bundle for OpenAI (esbuild/Vite)
+3. **CLI Tool Enhancements**: Improve `create-unido` with more templates
+4. **More Components**: List, Table, Chart, Form components
+5. **Additional Provider Adapters**: Framework is ready for new provider implementations

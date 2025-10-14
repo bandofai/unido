@@ -9,5 +9,9 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/providers/openai" }]
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/providers/openai" },
+    { "path": "../../packages/components" }
+  ]
 }

@@ -1,5 +1,5 @@
 /**
- * @unido/components
+ * @bandofai/unido-components
  * Universal UI components for AI applications
  */
 

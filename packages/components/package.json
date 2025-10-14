@@ -1,5 +1,5 @@
 {
-  "name": "@unido/components",
+  "name": "@bandofai/unido-components",
   "version": "0.1.0",
   "description": "Unido Components - Universal UI components for AI applications",
   "type": "module",
@@ -17,10 +17,10 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo src/**/*.js src/**/*.js.map src/**/*.d.ts src/**/*.d.ts.map"
   },
   "dependencies": {
-    "@unido/core": "workspace:*",
+    "@bandofai/unido-core": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

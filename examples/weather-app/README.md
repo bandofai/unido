@@ -4,7 +4,7 @@ Example application demonstrating Unido's multi-provider capabilities.
 
 ## Features
 
-- ✅ Multi-provider support (OpenAI, Claude ready)
+- ✅ OpenAI custom widget (MCP resource + React component)
 - ✅ Type-safe tool definitions with Zod
 - ✅ Component-based responses
 - ✅ Hot reload development
@@ -51,35 +51,18 @@ Search cities matching "New"
 ```
 weather-app/
 ├── src/
-│   └── index.ts          # Main app with tools
+│   ├── components/
+│   │   └── WeatherCard.tsx  # React widget rendered in ChatGPT
+│   └── index.ts             # Main app with tools + component registration
 ├── package.json
 └── tsconfig.json
 ```
 
 The app uses:
-- `@unido/core` - Core framework
-- `@unido/provider-openai` - OpenAI adapter
+- `@bandofai/unido-core` - Core framework
+- `@bandofai/unido-provider-openai` - OpenAI adapter
 - `@unido/dev` - Dev server with hot reload
 
-## Adding More Providers
+## Extensibility
 
-To add Claude support:
-
-```typescript
-import { ClaudeAdapter } from '@unido/provider-claude';
-
-const app = createApp({
-  name: 'weather-app',
-  providers: {
-    openai: { port: 3000 },
-    claude: { transport: 'stdio' },  // Add Claude
-  },
-});
-
-// Register Claude adapter
-const claudeAdapter = new ClaudeAdapter();
-await claudeAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', claudeAdapter);
-```
-
-Same code, multiple platforms! 🚀
+The Unido framework is designed to support multiple AI platforms. Currently, OpenAI is fully supported, and the architecture allows for easy addition of new providers in the future.

@@ -3,7 +3,7 @@
  * Handles ui:// resources for component templates
  */
 
-import type { ComponentDefinition } from '@unido/core';
+import type { ComponentDefinition } from '@bandofai/unido-core';
 
 /**
  * Generate a resource URI for a component

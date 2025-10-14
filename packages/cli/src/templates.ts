@@ -2,25 +2,12 @@
  * Project templates
  */
 
-export function getPackageJson(projectName: string, provider: string): Record<string, unknown> {
-  const dependencies: Record<string, string> = {
-    '@bandofai/unido-core': '^0.1.0',
-    'zod': '^3.24.1',
-  };
-
-  if (provider === 'openai' || provider === 'both') {
-    dependencies['@bandofai/unido-provider-openai'] = '^0.1.0';
-  }
-
-  if (provider === 'claude' || provider === 'both') {
-    dependencies['@bandofai/unido-provider-claude'] = '^0.1.0';
-  }
-
+export function getPackageJson(projectName: string): Record<string, unknown> {
   return {
     name: projectName,
     version: '1.0.0',
     type: 'module',
-    description: 'Unido AI application',
+    description: 'OpenAI App built with Unido',
     main: './dist/index.js',
     scripts: {
       build: 'tsc',
@@ -28,7 +15,12 @@ export function getPackageJson(projectName: string, provider: string): Record<st
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
     },
-    dependencies,
+    dependencies: {
+      '@bandofai/unido-core': '^0.1.1',
+      '@bandofai/unido-provider-openai': '^0.1.1',
+      '@bandofai/unido-components': '^0.1.0',
+      'zod': '^3.24.1',
+    },
     devDependencies: {
       '@types/node': '^22.10.7',
       typescript: '^5.7.3',
@@ -112,63 +104,18 @@ coverage/
 `;
 }
 
-export function getReadme(projectName: string, provider: string): string {
-  const providerSetup =
-    provider === 'openai' || provider === 'both'
-      ? `
-## OpenAI ChatGPT Setup
-
-1. Start the development server:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-
-2. The server will run on http://localhost:3000
-
-3. Add to ChatGPT:
-   - Go to ChatGPT Settings → Custom Tools
-   - Click "Add Server"
-   - Enter URL: http://localhost:3000
-`
-      : '';
-
-  const claudeSetup =
-    provider === 'claude' || provider === 'both'
-      ? `
-## Claude Desktop Setup
-
-1. Build your application:
-   \`\`\`bash
-   npm run build
-   \`\`\`
-
-2. Configure Claude Desktop:
-   Edit \`~/Library/Application Support/Claude/claude_desktop_config.json\`:
-   \`\`\`json
-   {
-     "mcpServers": {
-       "${projectName}": {
-         "command": "node",
-         "args": ["${process.cwd()}/${projectName}/dist/index.js"]
-       }
-     }
-   }
-   \`\`\`
-
-3. Restart Claude Desktop
-`
-      : '';
-
+export function getReadme(projectName: string): string {
   return `# ${projectName}
 
-AI application built with [Unido](https://github.com/yourusername/unido) - a provider-agnostic framework for building AI applications.
+OpenAI App built with [Unido](https://github.com/bandofai/unido) - a framework for building OpenAI custom tools.
 
 ## Features
 
-- ✅ Provider-agnostic tool definitions
 - ✅ Type-safe with TypeScript and Zod
-- ✅ Works with OpenAI ChatGPT and Anthropic Claude
+- ✅ Built on Model Context Protocol (MCP)
+- ✅ Includes a ready-to-bundle ChatGPT widget component
 - ✅ Hot reload in development
+- ✅ Easy integration with ChatGPT
 
 ## Installation
 
@@ -181,7 +128,16 @@ npm install
 \`\`\`bash
 npm run dev
 \`\`\`
-${providerSetup}${claudeSetup}
+
+The server will run on http://localhost:3000
+
+## OpenAI ChatGPT Setup
+
+1. Make sure your development server is running
+2. Open ChatGPT → Settings → Custom Tools
+3. Click "Add Server"
+4. Enter URL: http://localhost:3000
+5. Start using your tools in ChatGPT!
 
 ## Build
 
@@ -195,7 +151,9 @@ npm start
 \`\`\`
 ${projectName}/
 ├── src/
-│   └── index.ts       # Main application
+│   ├── components/
+│   │   └── GreetingCard.tsx   # React widget rendered in ChatGPT
+│   └── index.ts               # Main application & tool registration
 ├── dist/              # Build output
 ├── package.json
 ├── tsconfig.json
@@ -204,9 +162,9 @@ ${projectName}/
 
 ## Learn More
 
-- [Unido Documentation](https://github.com/yourusername/unido)
+- [Unido Documentation](https://github.com/bandofai/unido)
 - [OpenAI Custom Tools](https://platform.openai.com/docs/guides/custom-tools)
-- [Claude Desktop MCP](https://docs.anthropic.com/claude/docs/desktop-mcp)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ## License
 
@@ -214,63 +172,17 @@ MIT
 `;
 }
 
-export function getBasicTemplate(provider: string): string {
-  const imports = [];
-  imports.push(`import { createApp, textResponse } from '@bandofai/unido-core';`);
+export function getBasicTemplate(): string {
+  return `import { fileURLToPath } from 'node:url';
+import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';
+import { openAI } from '@bandofai/unido-provider-openai';
+import { z } from 'zod';
 
-  if (provider === 'openai') {
-    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
-  } else if (provider === 'claude') {
-    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
-  } else {
-    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
-    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
-  }
+// ============================================================================
+// Register Components
+// ============================================================================
 
-  imports.push(`import { z } from 'zod';`);
-
-  const providerConfig =
-    provider === 'both'
-      ? `{
-    openai: { enabled: true, port: 3000 },
-    claude: { enabled: true }
-  }`
-      : provider === 'openai'
-        ? `{
-    openai: { enabled: true, port: 3000 }
-  }`
-        : `{
-    claude: { enabled: true }
-  }`;
-
-  const adapterSetup =
-    provider === 'both'
-      ? `
-// Register OpenAI adapter
-const openaiAdapter = new OpenAIAdapter();
-await openaiAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('openai', openaiAdapter);
-
-// Register Claude adapter
-const claudeAdapter = new ClaudeAdapter();
-await claudeAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', claudeAdapter);
-`
-      : provider === 'openai'
-        ? `
-// Register OpenAI adapter
-const adapter = new OpenAIAdapter();
-await adapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('openai', adapter);
-`
-        : `
-// Register Claude adapter
-const adapter = new ClaudeAdapter();
-await adapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', adapter);
-`;
-
-  return `${imports.join('\n')}
+const greetingCardPath = fileURLToPath(new URL('./components/GreetingCard.tsx', import.meta.url));
 
 // ============================================================================
 // Create Unido App
@@ -279,9 +191,25 @@ app.registerProviderAdapter('claude', adapter);
 const app = createApp({
   name: 'my-app',
   version: '1.0.0',
-  providers: ${providerConfig},
+  providers: {
+    openai: openAI({ port: 3000 })
+  },
 });
-${adapterSetup}
+
+app.component({
+  type: 'greeting-card',
+  title: 'Greeting Card',
+  description: 'Shows a personalized greeting message to the user.',
+  sourcePath: greetingCardPath,
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true,
+      },
+    },
+  },
+});
+
 // ============================================================================
 // Register Tools
 // ============================================================================
@@ -293,7 +221,11 @@ app.tool('greet', {
     name: z.string().describe('Name of the person to greet'),
   }),
   handler: async ({ name }: { name: string }) => {
-    return textResponse(\`Hello, \${name}! Welcome to Unido.\`);
+    return componentResponse(
+      'greeting-card',
+      { name, greeting: \`Hello, \${name}!\` } as Record<string, unknown>,
+      \`Hello, \${name}!\`
+    );
   },
 });
 
@@ -340,7 +272,6 @@ await app.listen();
 
 console.log('✅ Server started successfully!\\n');
 
-// Keep process alive
 process.on('SIGINT', async () => {
   console.log('\\n\\n👋 Shutting down...');
   process.exit(0);
@@ -348,53 +279,11 @@ process.on('SIGINT', async () => {
 `;
 }
 
-export function getWeatherTemplate(provider: string): string {
-  const imports = [];
-  imports.push(`import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';`);
-
-  if (provider === 'openai' || provider === 'both') {
-    imports.push(`import { OpenAIAdapter } from '@bandofai/unido-provider-openai';`);
-  }
-  if (provider === 'claude' || provider === 'both') {
-    imports.push(`import { ClaudeAdapter } from '@bandofai/unido-provider-claude';`);
-  }
-
-  imports.push(`import { z } from 'zod';`);
-
-  const providerConfig =
-    provider === 'both'
-      ? `{
-    openai: { enabled: true, port: 3000 },
-    claude: { enabled: true }
-  }`
-      : provider === 'openai'
-        ? '{ openai: { enabled: true, port: 3000 } }'
-        : '{ claude: { enabled: true } }';
-
-  const adapterSetup =
-    provider === 'both'
-      ? `
-const openaiAdapter = new OpenAIAdapter();
-await openaiAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('openai', openaiAdapter);
-
-const claudeAdapter = new ClaudeAdapter();
-await claudeAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', claudeAdapter);
-`
-      : provider === 'openai'
-        ? `
-const adapter = new OpenAIAdapter();
-await adapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('openai', adapter);
-`
-        : `
-const adapter = new ClaudeAdapter();
-await adapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', adapter);
-`;
-
-  return `${imports.join('\n')}
+export function getWeatherTemplate(): string {
+  return `import { fileURLToPath } from 'node:url';
+import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';
+import { openAI } from '@bandofai/unido-provider-openai';
+import { z } from 'zod';
 
 // ============================================================================
 // Mock Weather API
@@ -406,25 +295,27 @@ interface WeatherData {
   condition: string;
   humidity: number;
   units: 'celsius' | 'fahrenheit';
+  updatedAt: string;
 }
 
-async function fetchWeather(
-  city: string,
-  units: 'celsius' | 'fahrenheit'
-): Promise<WeatherData> {
-  // Mock data - replace with real API call
+async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Promise<WeatherData> {
   const baseTemp = units === 'celsius' ? 22 : 72;
 
   return {
     city,
     temperature: baseTemp + Math.random() * 10,
-    condition: ['Sunny', 'Cloudy', 'Rainy', 'Partly Cloudy'][
-      Math.floor(Math.random() * 4)
-    ]!,
+    condition: ['Sunny', 'Cloudy', 'Rainy', 'Partly Cloudy'][Math.floor(Math.random() * 4)]!,
     humidity: 60 + Math.random() * 30,
     units,
+    updatedAt: new Date().toISOString(),
   };
 }
+
+// ============================================================================
+// Register Components
+// ============================================================================
+
+const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
 
 // ============================================================================
 // Create Unido App
@@ -433,9 +324,25 @@ async function fetchWeather(
 const app = createApp({
   name: 'weather-app',
   version: '1.0.0',
-  providers: ${providerConfig},
+  providers: {
+    openai: openAI({ port: 3000 })
+  },
 });
-${adapterSetup}
+
+app.component({
+  type: 'weather-card',
+  title: 'Weather Card',
+  description: 'Displays a quick overview of the current weather for a city.',
+  sourcePath: weatherCardPath,
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true,
+      },
+    },
+  },
+});
+
 // ============================================================================
 // Register Tools
 // ============================================================================
@@ -445,18 +352,23 @@ app.tool('get_weather', {
   description: 'Get current weather for a city',
   input: z.object({
     city: z.string().describe('City name'),
-    units: z
-      .enum(['celsius', 'fahrenheit'])
-      .default('celsius')
-      .describe('Temperature units'),
+    units: z.enum(['celsius', 'fahrenheit']).default('celsius').describe('Temperature units'),
   }),
   handler: async ({ city, units }: { city: string; units?: 'celsius' | 'fahrenheit' }) => {
-    const data = await fetchWeather(city, units ?? 'celsius');
+    const resolvedUnits = units ?? 'celsius';
+    const data = await fetchWeather(city, resolvedUnits);
 
     return componentResponse(
       'weather-card',
-      data as unknown as Record<string, unknown>,
-      \`Weather in \${city}: \${Math.round(data.temperature)}°\${units === 'celsius' ? 'C' : 'F'}, \${data.condition}\`
+      {
+        city: data.city,
+        temperature: data.temperature,
+        condition: data.condition,
+        humidity: data.humidity,
+        units: resolvedUnits,
+        updatedAt: data.updatedAt,
+      } as Record<string, unknown>,
+      \`Weather in \${city}: \${Math.round(data.temperature)}°\${resolvedUnits === 'celsius' ? 'C' : 'F'}, \${data.condition}\`
     );
   },
 });
@@ -469,13 +381,19 @@ app.tool('search_cities', {
   }),
   handler: async ({ query }: { query: string }) => {
     const cities = [
-      'New York', 'London', 'Tokyo', 'Paris', 'Sydney',
-      'Berlin', 'Toronto', 'Mumbai', 'Singapore', 'Dubai'
-    ].filter((city) => city.toLowerCase().includes(query.toLowerCase()));
+      'New York',
+      'London',
+      'Tokyo',
+      'Paris',
+      'Sydney',
+      'Berlin',
+      'Toronto',
+      'Mumbai',
+      'Singapore',
+      'Dubai',
+    ].filter((candidate) => candidate.toLowerCase().includes(query.toLowerCase()));
 
-    return textResponse(
-      \`Found \${cities.length} cities matching "\${query}":\\n\${cities.join(', ')}\`
-    );
+    return textResponse(\`Found \${cities.length} cities matching "\${query}":\\n\${cities.join(', ')}\`);
   },
 });
 
@@ -494,99 +412,79 @@ process.on('SIGINT', async () => {
 `;
 }
 
-export function getMultiProviderTemplate(): string {
-  return `import { createApp, textResponse } from '@bandofai/unido-core';
-import { OpenAIAdapter } from '@bandofai/unido-provider-openai';
-import { ClaudeAdapter } from '@bandofai/unido-provider-claude';
-import { z } from 'zod';
+// Removed: Multi-provider template is no longer supported.
+// Unido is focused on OpenAI Apps only.
+// Use getBasicTemplate() or getWeatherTemplate() instead.
 
-// ============================================================================
-// Create Unido App with Multiple Providers
-// ============================================================================
+export function getBasicComponentSource(): string {
+  return `import { Card } from '@bandofai/unido-components';
+import type { FC } from 'react';
 
-const app = createApp({
-  name: 'multi-provider-app',
-  version: '1.0.0',
-  providers: {
-    openai: {
-      enabled: true,
-      port: 3000,
-      transport: 'http',
-    },
-    claude: {
-      enabled: true,
-    },
-  },
-});
+export interface GreetingCardProps {
+  name: string;
+  greeting: string;
+}
 
-// Register OpenAI adapter
-const openaiAdapter = new OpenAIAdapter();
-await openaiAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('openai', openaiAdapter);
+const GreetingCard: FC<GreetingCardProps> = ({ name, greeting }) => (
+  <Card>
+    <Card.Header>
+      <h2 style={{ margin: 0 }}>{greeting}</h2>
+    </Card.Header>
+    <Card.Body>
+      <p style={{ margin: 0 }}>Nice to meet you, {name}!</p>
+    </Card.Body>
+  </Card>
+);
 
-// Register Claude adapter
-const claudeAdapter = new ClaudeAdapter();
-await claudeAdapter.initialize(app.getServerConfig());
-app.registerProviderAdapter('claude', claudeAdapter);
+export default GreetingCard;
+`;
+}
 
-// ============================================================================
-// Register Tools (Work with Both Providers!)
-// ============================================================================
+export function getWeatherComponentSource(): string {
+  return `import { Card } from '@bandofai/unido-components';
+import type { FC } from 'react';
 
-app.tool('echo', {
-  title: 'Echo',
-  description: 'Echo back the input message',
-  input: z.object({
-    message: z.string().describe('Message to echo'),
-  }),
-  handler: async ({ message }, context) => {
-    return textResponse(
-      \`[\${context.provider.toUpperCase()}] Echo: \${message}\`
-    );
-  },
-});
+export interface WeatherCardProps {
+  city: string;
+  temperature: number;
+  condition: string;
+  humidity: number;
+  units: 'celsius' | 'fahrenheit';
+  updatedAt: string;
+}
 
-app.tool('provider_info', {
-  title: 'Provider Info',
-  description: 'Get information about the current provider',
-  input: z.object({}),
-  handler: async (_input, context) => {
-    const info = {
-      openai: {
-        name: 'OpenAI ChatGPT',
-        transport: 'HTTP + SSE',
-        url: 'http://localhost:3000',
-      },
-      claude: {
-        name: 'Anthropic Claude Desktop',
-        transport: 'stdio',
-        url: 'N/A (local)',
-      },
-    };
+const WeatherCard: FC<WeatherCardProps> = ({
+  city,
+  temperature,
+  condition,
+  humidity,
+  units,
+  updatedAt,
+}) => {
+  const unitLabel = units === 'celsius' ? '°C' : '°F';
 
-    const current = info[context.provider as 'openai' | 'claude'] || { name: 'Unknown' };
+  return (
+    <Card>
+      <Card.Header>
+        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>{city}</h2>
+        <p style={{ margin: 0, color: '#6b7280' }}>
+          Updated {new Date(updatedAt).toLocaleTimeString()}
+        </p>
+      </Card.Header>
+      <Card.Body>
+        <div style={{ fontSize: '2.5rem', fontWeight: 600 }}>
+          {Math.round(temperature)}
+          {unitLabel}
+        </div>
+        <p style={{ margin: '0.5rem 0 0', color: '#4b5563' }}>{condition}</p>
+      </Card.Body>
+      <Card.Footer>
+        <span style={{ color: '#4b5563' }}>Humidity: {Math.round(humidity)}%</span>
+      </Card.Footer>
+    </Card>
+  );
+};
 
-    return textResponse(
-      \`Provider: \${current.name}\\nTransport: \${current.transport}\\nEndpoint: \${current.url}\`
-    );
-  },
-});
-
-// ============================================================================
-// Start Server
-// ============================================================================
-
-console.log('🚀 Multi-Provider App - Powered by Unido\\n');
-
-await app.listen();
-
-console.log('✅ Server started!');
-console.log('   OpenAI: http://localhost:3000');
-console.log('   Claude: stdio (via Claude Desktop)\\n');
-
-process.on('SIGINT', async () => {
-  console.log('\\n\\n👋 Shutting down...');
-  process.exit(0);
-});
+export default WeatherCard;
 `;
 }

@@ -20,8 +20,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@unido/core": "workspace:*",
-    "@unido/provider-base": "workspace:*"
+    "@bandofai/unido-core": "workspace:*",
+    "@bandofai/unido-provider-base": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

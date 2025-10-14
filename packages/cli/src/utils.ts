@@ -48,8 +48,5 @@ export function validateProjectName(name: string): ValidationResult {
  * Format provider list for display
  */
 export function formatProviders(provider: string): string[] {
-  if (provider === 'both') {
-    return ['openai', 'claude'];
-  }
   return [provider];
 }

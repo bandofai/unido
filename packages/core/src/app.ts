@@ -3,17 +3,17 @@
  * Provider-agnostic application builder
  */
 
-import type { ComponentDefinition } from '@unido/core/component.js';
-import { ComponentRegistry } from '@unido/core/component.js';
-import type { ToolDefinition } from '@unido/core/tool.js';
-import { ToolRegistry, createTool } from '@unido/core/tool.js';
+import type { ComponentDefinition } from '@bandofai/unido-core/types.js';
+import { ComponentRegistry } from '@bandofai/unido-core/component.js';
+import type { ToolDefinition } from '@bandofai/unido-core/tool.js';
+import { ToolRegistry, createTool } from '@bandofai/unido-core/tool.js';
 import type {
   ProviderConfig,
   ProviderName,
   ProviderServer,
   ServerConfig,
   UniversalTool,
-} from '@unido/core/types.js';
+} from '@bandofai/unido-core/types.js';
 
 /**
  * Provider adapter interface (minimal type to avoid circular dependencies)
@@ -215,7 +215,7 @@ export class Unido {
       // Check if factory function exists
       if (!providerConfig._factory) {
         console.warn(
-          `⚠️  Provider "${providerName}" missing factory function.\n   Use factory functions: openAI(), claude(), etc.`
+          `⚠️  Provider "${providerName}" missing factory function.\n   Use factory functions: openAI(), etc.`
         );
         continue;
       }
@@ -229,6 +229,7 @@ export class Unido {
           name: this.config.name,
           version: this.config.version,
           tools: this.toolRegistry.getAll(),
+          components: this.componentRegistry.getAll(),
           providers: this.config.providers,
         });
 
@@ -255,6 +256,7 @@ export class Unido {
       name: this.config.name,
       version: this.config.version,
       tools: this.toolRegistry.getAll(),
+      components: this.componentRegistry.getAll(),
       providers: this.config.providers,
     };
   }
@@ -278,13 +280,12 @@ export class Unido {
    * const app = createApp({
    *   name: 'my-app',
    *   providers: {
-   *     openai: openAI({ port: 3000 }),
-   *     claude: claude()
+   *     openai: openAI({ port: 3000 })
    *   }
    * });
    *
    * app.tool('greet', { ... });
-   * await app.listen(); // Starts OpenAI and Claude servers
+   * await app.listen(); // Starts OpenAI server
    * ```
    */
   async listen(_port?: number): Promise<void> {
@@ -401,14 +402,13 @@ export class Unido {
  *
  * @example
  * ```typescript
- * import { createApp } from '@unido/core';
+ * import { createApp } from '@bandofai/unido-core';
  * import { z } from 'zod';
  *
  * const app = createApp({
  *   name: 'weather-app',
  *   providers: {
- *     openai: { port: 3000 },
- *     claude: { transport: 'stdio' }
+ *     openai: { port: 3000 }
  *   }
  * });
  *

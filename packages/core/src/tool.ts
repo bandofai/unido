@@ -7,7 +7,7 @@ import type {
   ToolHandler,
   UniversalResponse,
   UniversalTool,
-} from '@unido/core/types.js';
+} from '@bandofai/unido-core/types.js';
 import type { z } from 'zod';
 
 // ============================================================================

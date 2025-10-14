@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Unido Core - Provider-agnostic framework for building AI applications",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,7 +32,9 @@
       "import": "./dist/types.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -54,7 +56,15 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": ["unido", "ai", "openai", "chatgpt", "framework", "tools", "mcp"],
+  "keywords": [
+    "unido",
+    "ai",
+    "openai",
+    "chatgpt",
+    "framework",
+    "tools",
+    "mcp"
+  ],
   "dependencies": {
     "zod": "^3.24.1"
   },

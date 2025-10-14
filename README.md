@@ -1,61 +1,139 @@
+<div align="center">
+
 # 🌐 Unido
 
-**Build AI applications once, deploy them everywhere.**
+### Build AI tools once. Deploy everywhere.
 
-Unido is a TypeScript framework that lets you create custom tools and interfaces for AI assistants (ChatGPT, Claude, Gemini) using a single codebase. Write your tool logic once, and Unido automatically adapts it to work with different AI platforms.
+**The universal framework for building AI applications that work across ChatGPT and future AI platforms.**
 
-[![npm version](https://img.shields.io/npm/v/create-unido)](https://www.npmjs.com/package/create-unido)
+[![npm version](https://img.shields.io/npm/v/create-unido?label=create-unido)](https://www.npmjs.com/package/create-unido)
+[![npm version](https://img.shields.io/npm/v/@bandofai/unido-core?label=@bandofai/unido-core)](https://www.npmjs.com/package/@bandofai/unido-core)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
-[![pnpm](https://img.shields.io/badge/pnpm-10.17-orange)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
----
+[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Roadmap](#-roadmap)
 
-## 🎯 What Problem Does Unido Solve?
-
-Every AI platform has its own way of defining custom tools:
-- **OpenAI** uses HTTP servers with JSON Schema
-- **Claude** uses stdio with Model Context Protocol
-- **Gemini** has its own tool format
-- **Future platforms** will likely have different approaches
-
-**The problem:** If you want to build a custom tool (like a weather app, calculator, or database query tool), you need to write separate implementations for each platform.
-
-**Unido's solution:** Write your tool **once** using Unido's universal API, and it automatically works across all supported AI platforms.
+</div>
 
 ---
 
-## ⚡ Quick Example
+## 🎯 The Problem
 
-Here's a complete weather tool that works in both ChatGPT and Claude Desktop:
+Building custom AI tools means writing the same code multiple times:
 
 ```typescript
-import { createApp, textResponse } from '@unido/core';
-import { openAI } from '@unido/provider-openai';
-import { claude } from '@unido/provider-claude';
+// ❌ Today: Different code for each platform
+writeOpenAITool()     // HTTP + JSON Schema
+writeFutureTool()     // Different API
+```
+
+**Unido's Solution:**
+
+```typescript
+// ✅ With Unido: Write once, run everywhere
+app.tool('my_tool', { /* ... */ })
+// Automatically works in ChatGPT and future platforms
+```
+
+---
+
+## ✨ Why Unido?
+
+| Feature | Platform SDKs | Unido |
+|---------|--------------|-------|
+| **Multi-Platform** | Write separate code for each | ✅ Single codebase |
+| **Type Safety** | Manual types per platform | ✅ Zod + TypeScript inference |
+| **Protocol** | Learn each platform's API | ✅ Built on MCP standard |
+| **Development Speed** | Slow (duplicate work) | ✅ Fast (write once) |
+| **Maintenance** | Update N codebases | ✅ Update 1 codebase |
+
+---
+
+## ⚡ Quick Start
+
+### 1. Create a new Unido app
+
+```bash
+pnpm create unido
+```
+
+Follow the prompts to choose your template (basic or weather example).
+
+### 2. Run your app
+
+```bash
+cd your-app-name
+pnpm run dev
+```
+
+Your server is now running on `http://localhost:3000` 🎉
+
+### 3. Connect to ChatGPT
+
+1. Open ChatGPT → **Settings → Custom Tools → Add Server**
+2. Enter `http://localhost:3000`
+3. Ask ChatGPT to use your tools!
+
+---
+
+## 📖 Complete Example
+
+Here's a complete weather tool that works across all platforms:
+
+```typescript
+import { fileURLToPath } from 'node:url';
+import { createApp, componentResponse } from '@bandofai/unido-core';
+import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
 
-// Create your app with multiple providers
+// Create app with OpenAI provider
 const app = createApp({
   name: 'weather-app',
+  version: '1.0.0',
   providers: {
-    openai: openAI({ port: 3000 }),      // For ChatGPT
-    claude: claude({ transport: 'stdio' }) // For Claude Desktop
+    openai: openAI({ port: 3000 })
   }
 });
 
-// Define your tool once
+// Register the widget component once
+const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
+
+app.component({
+  type: 'weather-card',
+  title: 'Weather Card',
+  description: 'Displays temperature, condition, and humidity for a city.',
+  sourcePath: weatherCardPath,
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true,
+      },
+    },
+  },
+});
+
+// Define your tool with Zod schema for type safety
 app.tool('get_weather', {
-  description: 'Get current weather for a city',
+  title: 'Get Weather',
+  description: 'Get current weather for any city',
   input: z.object({
     city: z.string().describe('City name'),
     units: z.enum(['celsius', 'fahrenheit']).default('celsius')
   }),
   handler: async ({ city, units }) => {
     // Your business logic
-    const weather = await fetchWeatherFromAPI(city, units);
+    const weather = await fetchWeatherAPI(city);
 
-    return textResponse(
+    // Return rich response with fallback
+    return componentResponse(
+      'weather-card',
+      {
+        city,
+        temperature: weather.temp,
+        condition: weather.condition,
+        humidity: weather.humidity,
+        units,
+      },
       `Weather in ${city}: ${weather.temp}°${units === 'celsius' ? 'C' : 'F'}`
     );
   }
@@ -63,82 +141,253 @@ app.tool('get_weather', {
 
 // Start the server
 await app.listen();
-// ✅ OpenAI server running on http://localhost:3000
-// ✅ Claude stdio server ready
+console.log('✅ Server started on http://localhost:3000');
 ```
 
-That's it! Your weather tool now works in:
-- ✅ ChatGPT (via OpenAI Apps)
-- ✅ Claude Desktop (via MCP)
-- ✅ Any future platform you add
+**That's it!** Your tool now:
+- ✅ Has full TypeScript type safety
+- ✅ Validates inputs automatically
+- ✅ Works in ChatGPT
+- ✅ Ready for future platforms (just add provider config)
 
 ---
 
-## 🚀 Getting Started
+## 🎨 Key Features
 
-### Quick Start with CLI (Recommended)
+### 🔄 Write Once, Run Everywhere
 
-The fastest way to get started is using the interactive CLI:
+Define tools using Unido's universal API. The framework automatically converts them for each platform.
 
-```bash
-# Create a new Unido app
-pnpm create unido
+```typescript
+// One definition...
+app.tool('calculator', { /* ... */ });
 
-# Or with npm
-npm create unido
-
-# Or with npx
-npx create-unido
+// ...works everywhere
+providers: {
+  openai: openAI({ port: 3000 })    // → HTTP + JSON Schema
+  // Add more providers as they become available
+}
 ```
 
-This will scaffold a complete project with:
-- ✅ Your choice of template (basic, weather, or multi-provider)
-- ✅ TypeScript configuration
-- ✅ All necessary dependencies
-- ✅ Ready-to-run example code
+### 🛡️ Type-Safe with Zod
 
-> **Note:** The CLI (`create-unido`) is published and available on npm, but the core Unido packages (`@unido/core`, `@unido/provider-openai`, `@unido/provider-claude`) need to be published before the generated projects will work. See [Publishing Status](#publishing-status) below.
+Get compile-time and runtime safety with [Zod](https://zod.dev/) schemas:
 
-### Manual Setup
+```typescript
+input: z.object({
+  email: z.string().email(),
+  age: z.number().min(18).max(120),
+  country: z.enum(['US', 'UK', 'CA'])
+})
 
-If you prefer to set up your project manually without the CLI, follow these steps:
+// TypeScript automatically knows handler receives:
+handler: async ({ email, age, country }) => {
+  // email: string (validated email)
+  // age: number (18-120)
+  // country: 'US' | 'UK' | 'CA'
+}
+```
 
-#### Step 1: Create a New Project
+### 🧩 Smart Component System
+
+Return rich UI that adapts per platform:
+
+```typescript
+return componentResponse(
+  'weather-card',
+  { city, temp, condition },
+  'Fallback text for unsupported platforms'
+);
+```
+
+- **OpenAI**: Renders as React component
+- **Future platforms**: Automatically adapts
+- **Automatic bundling**: Components registered with `app.component()` are bundled once on startup and exposed to ChatGPT as MCP resources (`ui://widget/<name>.html`).
+- **Widget accessibility**: Mark widgets as interactive via `metadata.openai.renderHints.widgetAccessible = true` to allow follow-up tool calls from UI actions.
+
+### 🔌 Built on Industry Standards
+
+- **MCP (Model Context Protocol)**: Industry-standard protocol for AI tools
+- **JSON-RPC 2.0**: Battle-tested RPC protocol
+- **JSON Schema**: Universal schema format
+- **OpenAPI-compatible**: Easy integration
+
+---
+
+## 📚 Documentation
+
+### Core Concepts
+
+#### Tools
+
+Tools are functions AI assistants can call:
+
+```typescript
+app.tool('tool_name', {
+  title: 'Human-readable name',        // Shows in UI
+  description: 'What this tool does',  // Helps AI decide when to use it
+  input: z.object({ /* params */ }),   // Zod schema for validation
+  handler: async (params) => {         // Your business logic
+    return textResponse('Result');
+  }
+});
+```
+
+#### Providers
+
+Providers adapt your tools for specific platforms:
+
+```typescript
+import { openAI } from '@bandofai/unido-provider-openai';
+
+const app = createApp({
+  providers: {
+    openai: openAI({ port: 3000 })    // For ChatGPT
+  }
+});
+```
+
+#### Response Types
+
+Return structured responses:
+
+```typescript
+import { textResponse, componentResponse } from '@bandofai/unido-core';
+
+// Simple text
+return textResponse('Hello world');
+
+// Rich component (with fallback text)
+return componentResponse('card',
+  { title: 'Hello', description: 'World' },
+  'Hello World'  // Fallback for platforms without components
+);
+
+// Multiple content blocks
+return {
+  content: [
+    { type: 'text', text: 'Here is your data:' },
+    { type: 'text', text: JSON.stringify(data, null, 2) }
+  ]
+};
+```
+
+### Configuration
+
+#### OpenAI Provider Options
+
+```typescript
+openAI({
+  port: 3000,              // Server port (default: 3000)
+  host: 'localhost',       // Server host (default: 'localhost')
+  cors: true,              // Enable CORS (default: true)
+  corsOrigin: '*'          // CORS origin (default: '*')
+})
+```
+
+---
+
+## 🏗️ Examples
+
+### Basic Calculator
+
+```typescript
+app.tool('calculate', {
+  title: 'Calculator',
+  description: 'Perform arithmetic operations',
+  input: z.object({
+    operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
+    a: z.number(),
+    b: z.number()
+  }),
+  handler: async ({ operation, a, b }) => {
+    let result: number;
+    switch (operation) {
+      case 'add': result = a + b; break;
+      case 'subtract': result = a - b; break;
+      case 'multiply': result = a * b; break;
+      case 'divide': result = b !== 0 ? a / b : NaN; break;
+    }
+    return textResponse(`${a} ${operation} ${b} = ${result}`);
+  }
+});
+```
+
+### Database Query Tool
+
+```typescript
+app.tool('query_database', {
+  title: 'Query Database',
+  description: 'Execute SQL queries on the database',
+  input: z.object({
+    query: z.string().describe('SQL query to execute'),
+    limit: z.number().max(100).default(10)
+  }),
+  handler: async ({ query, limit }) => {
+    const results = await db.query(query, { limit });
+    return textResponse(JSON.stringify(results, null, 2));
+  }
+});
+```
+
+### Multi-Step Tool with Error Handling
+
+```typescript
+app.tool('send_email', {
+  title: 'Send Email',
+  description: 'Send an email to a recipient',
+  input: z.object({
+    to: z.string().email(),
+    subject: z.string(),
+    body: z.string()
+  }),
+  handler: async ({ to, subject, body }) => {
+    try {
+      await emailService.send({ to, subject, body });
+      return textResponse(`✅ Email sent to ${to}`);
+    } catch (error) {
+      return textResponse(`❌ Failed to send email: ${error.message}`);
+    }
+  }
+});
+```
+
+### Complete Weather App
+
+See [examples/weather-app](examples/weather-app/src/index.ts) for a full-featured example with:
+- Multiple tools
+- Component responses
+- External API integration
+- Error handling
+- Graceful shutdown
 
 ```bash
-# Create project directory
-mkdir my-unido-app
-cd my-unido-app
+cd examples/weather-app
+pnpm install
+pnpm run dev
+```
 
-# Initialize package.json
+---
+
+## 🔧 Manual Setup
+
+Prefer to set up manually? Here's how:
+
+### 1. Create Project
+
+```bash
+mkdir my-app && cd my-app
 pnpm init
-# or
-npm init -y
 ```
 
-#### Step 2: Install Dependencies
+### 2. Install Dependencies
 
 ```bash
-# Install Unido packages
-pnpm add @unido/core @unido/provider-openai zod
-
-# For Claude support, also add:
-pnpm add @unido/provider-claude
-
-# Or use npm:
-npm install @unido/core @unido/provider-openai @unido/provider-claude zod
-```
-
-#### Step 3: Install Dev Dependencies
-
-```bash
+pnpm add @bandofai/unido-core @bandofai/unido-provider-openai zod
 pnpm add -D typescript @types/node tsx
-
-# Or with npm:
-npm install --save-dev typescript @types/node tsx
 ```
 
-#### Step 4: Configure TypeScript
+### 3. Configure TypeScript
 
 Create `tsconfig.json`:
 
@@ -149,304 +398,130 @@ Create `tsconfig.json`:
     "module": "ESNext",
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+    "isolatedModules": true
+  }
 }
 ```
 
-#### Step 5: Update package.json
-
-Add these fields to your `package.json`:
+### 4. Setup package.json
 
 ```json
 {
   "type": "module",
-  "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
-    "type-check": "tsc --noEmit"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "build": "tsc"
   }
 }
 ```
 
-#### Step 6: Create Your Application
+### 5. Create Your App
 
-Create `src/index.ts`:
+Create `src/index.ts` with the [example above](#-complete-example).
 
-```typescript
-import { createApp, textResponse } from '@unido/core';
-import { openAI } from '@unido/provider-openai';
-import { z } from 'zod';
-
-const app = createApp({
-  name: 'my-unido-app',
-  version: '1.0.0',
-  providers: {
-    openai: openAI({ port: 3000 })
-  }
-});
-
-// Define your first tool
-app.tool('greet', {
-  description: 'Greet a user by name',
-  input: z.object({
-    name: z.string().describe('User\'s name')
-  }),
-  handler: async ({ name }) => {
-    return textResponse(`Hello, ${name}! 👋`);
-  }
-});
-
-// Start the server
-await app.listen();
-console.log('🚀 Unido app is running!');
-```
-
-#### Step 7: Create .gitignore
-
-Create `.gitignore`:
-
-```
-# Dependencies
-node_modules/
-.pnpm-store/
-
-# Build outputs
-dist/
-*.tsbuildinfo
-
-# Environment
-.env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-
-# Logs
-*.log
-```
-
-#### Step 8: Run Your App
+### 6. Run It
 
 ```bash
-# Development mode (with hot reload)
-pnpm run dev
-
-# Or with npm:
-npm run dev
-```
-
-#### Step 9: Connect to ChatGPT
-
-1. Your server is now running on `http://localhost:3000`
-2. Open ChatGPT
-3. Go to **Settings → Apps**
-4. Click **Add Server**
-5. Enter your server URL: `http://localhost:3000`
-6. Test it by asking ChatGPT: "Greet me with my name"
-
-That's it! Now ChatGPT can use your custom tool!
-
----
-
-### Manual Setup for Claude Desktop
-
-If you want to use Claude Desktop instead of (or in addition to) OpenAI:
-
-#### Step 1: Update src/index.ts
-
-```typescript
-import { createApp, textResponse } from '@unido/core';
-import { claude } from '@unido/provider-claude';
-import { z } from 'zod';
-
-const app = createApp({
-  name: 'my-unido-app',
-  version: '1.0.0',
-  providers: {
-    claude: claude({ transport: 'stdio' })
-  }
-});
-
-app.tool('greet', {
-  description: 'Greet a user by name',
-  input: z.object({
-    name: z.string().describe('User\'s name')
-  }),
-  handler: async ({ name }) => {
-    return textResponse(`Hello, ${name}! 👋`);
-  }
-});
-
-await app.listen();
-```
-
-#### Step 2: Build Your App
-
-```bash
-pnpm run build
-```
-
-#### Step 3: Configure Claude Desktop
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "my-unido-app": {
-      "command": "node",
-      "args": ["/absolute/path/to/my-unido-app/dist/index.js"]
-    }
-  }
-}
-```
-
-#### Step 4: Restart Claude Desktop
-
-Restart the Claude Desktop app, and your tools will be available!
-
----
-
-## 💡 Key Features
-
-### 🔄 Write Once, Run Everywhere
-Define your tools using Unido's universal API. The framework handles all the platform-specific conversions automatically.
-
-### 🛡️ Type-Safe with Zod
-Use [Zod](https://zod.dev/) schemas for input validation. Get full TypeScript type inference and runtime validation automatically.
-
-```typescript
-input: z.object({
-  email: z.string().email(),
-  age: z.number().min(0).max(120)
-})
-// TypeScript knows the exact types in your handler
-```
-
-### 🧩 Component System
-Return rich UI components that adapt to each platform's capabilities:
-
-```typescript
-import { componentResponse } from '@unido/core';
-
-return componentResponse(
-  'weather-card',
-  { city, temperature, condition },
-  'Weather loaded successfully' // Fallback text
-);
-```
-
-- **OpenAI**: Renders as interactive React component
-- **Claude**: Falls back to formatted text
-- **Future platforms**: Automatically adapts
-
-### 🔌 Built on Standards
-Uses the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) under the hood, ensuring compatibility with the AI ecosystem.
-
----
-
-## 📚 Core Concepts
-
-### Tools
-
-Tools are functions that AI assistants can call. Each tool has:
-- **Description**: What the tool does (helps the AI decide when to use it)
-- **Input Schema**: What parameters it accepts (defined with Zod)
-- **Handler**: Your business logic (async function)
-
-```typescript
-app.tool('tool_name', {
-  description: 'Clear description for the AI',
-  input: z.object({ /* parameters */ }),
-  handler: async (params) => {
-    // Your logic here
-    return textResponse('Result');
-  }
-});
-```
-
-### Providers
-
-Providers are adapters for different AI platforms. Unido currently supports:
-
-- **OpenAI** (`@unido/provider-openai`) - For ChatGPT
-- **Claude** (`@unido/provider-claude`) - For Claude Desktop
-- **More coming soon** (Gemini, custom platforms)
-
-Each provider handles:
-- Platform-specific protocols
-- Schema conversion
-- Transport layer (HTTP, stdio, WebSocket)
-
-### Responses
-
-Return structured responses from your tools:
-
-```typescript
-import { textResponse, componentResponse, errorResponse } from '@unido/core';
-
-// Simple text
-return textResponse('Hello world');
-
-// Rich component (with fallback)
-return componentResponse('card', { title: 'Hello' }, 'Hello world');
-
-// Error handling
-return errorResponse('Something went wrong', 'NOT_FOUND');
-```
-
----
-
-## 🏗️ Real-World Example
-
-Check out the complete [weather app example](examples/weather-app/src/index.ts) that demonstrates:
-- Multiple tools in one app
-- Component responses
-- Provider configuration
-- Error handling
-- Graceful shutdown
-
-Run it locally:
-
-```bash
-cd examples/weather-app
-pnpm install
 pnpm run dev
 ```
 
 ---
 
-## 🔧 Development Setup
+## 🐛 Troubleshooting
 
-This is a monorepo project using pnpm workspaces. If you want to contribute or modify Unido itself:
+### "Cannot find package '@bandofai/unido-core'"
+
+Make sure you installed the dependencies:
+```bash
+pnpm add @bandofai/unido-core @bandofai/unido-provider-openai zod
+```
+
+### "Port 3000 already in use"
+
+Change the port in your config:
+```typescript
+openai: openAI({ port: 3001 })
+```
+
+### "Missing factory function" warning
+
+Update your code to use the factory function pattern:
+```typescript
+// ❌ Old way
+providers: { openai: { enabled: true, port: 3000 } }
+
+// ✅ New way
+providers: { openai: openAI({ port: 3000 }) }
+```
+
+### TypeScript errors about implicit types
+
+Add explicit type annotations to handlers:
+```typescript
+handler: async ({ city, units }: { city: string; units?: string }) => {
+  // ...
+}
+```
+
+### Server starts but ChatGPT can't connect
+
+1. Check server is running: `curl http://localhost:3000/health`
+2. Ensure firewall allows connections
+3. Use `http://` not `https://` for local development
+
+---
+
+## 📦 Package Structure
+
+Unido is a monorepo with the following packages:
+
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`create-unido`](packages/cli) | [![npm](https://img.shields.io/npm/v/create-unido)](https://npmjs.com/package/create-unido) | CLI for scaffolding new apps |
+| [`@bandofai/unido-core`](packages/core) | [![npm](https://img.shields.io/npm/v/@bandofai/unido-core)](https://npmjs.com/package/@bandofai/unido-core) | Core framework |
+| [`@bandofai/unido-provider-openai`](packages/providers/openai) | [![npm](https://img.shields.io/npm/v/@bandofai/unido-provider-openai)](https://npmjs.com/package/@bandofai/unido-provider-openai) | OpenAI ChatGPT adapter |
+| [`@bandofai/unido-provider-base`](packages/providers/base) | [![npm](https://img.shields.io/npm/v/@bandofai/unido-provider-base)](https://npmjs.com/package/@bandofai/unido-provider-base) | Base provider classes |
+| `@bandofai/unido-components` | Coming Soon | UI component library |
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Phase 1: Foundation (Complete)
+- [x] Core framework with type system
+- [x] Zod schema integration
+- [x] OpenAI adapter with MCP
+- [x] CLI tool (`create-unido`)
+- [x] Published to npm
+
+### 📋 Phase 2: Developer Experience (In Progress)
+- [ ] Hot reload development server
+- [ ] Better error messages
+- [ ] Debug mode
+- [ ] More templates (database, file system, etc.)
+- [ ] Documentation site
+
+### 🔮 Phase 3: Ecosystem
+- [ ] Custom provider SDK
+- [ ] Component library
+- [ ] Plugin system
+- [ ] Production deployment guides
+- [ ] Additional provider adapters
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+### Development Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/unido.git
+# Clone the repo
+git clone https://github.com/bandofai/unido.git
 cd unido
 
 # Install dependencies
@@ -455,132 +530,38 @@ pnpm install
 # Build all packages
 pnpm run build
 
-# Run in development mode
-pnpm run dev
-
 # Run tests
 pnpm run test
+
+# Development mode (watch)
+pnpm run dev
 ```
 
----
+### Project Structure
 
-## 📦 Package Structure
+```
+unido/
+├── packages/
+│   ├── cli/              # create-unido CLI
+│   ├── core/             # Core framework
+│   ├── components/       # UI components
+│   ├── dev/              # Dev utilities
+│   └── providers/
+│       ├── base/         # Base adapter
+│       └── openai/       # OpenAI adapter
+├── examples/
+│   └── weather-app/      # Example app
+└── docs/                 # Documentation
+```
 
-Unido is organized as a monorepo:
+### Areas for Contribution
 
-- **`@unido/core`** - Main framework (createApp, tool registration, types)
-- **`@unido/provider-base`** - Base classes for provider adapters
-- **`@unido/provider-openai`** - OpenAI/ChatGPT adapter
-- **`@unido/provider-claude`** - Claude Desktop adapter
-- **`@unido/components`** - Reusable UI components
-- **`@unido/dev`** - Development utilities
-- **`create-unido`** - CLI tool for scaffolding ✅ Published
-
----
-
-## 📦 Publishing Status
-
-### Published Packages
-
-- ✅ **`create-unido@0.2.0`** - CLI tool available on npm
-  - npm: https://www.npmjs.com/package/create-unido
-  - Usage: `pnpm create unido`
-
-### Packages Pending Publication
-
-The following packages need to be published to npm for the full framework to work:
-
-- ⏳ **`@unido/core`** - Core framework (required)
-- ⏳ **`@unido/provider-base`** - Base provider classes (required)
-- ⏳ **`@unido/provider-openai`** - OpenAI adapter (required for ChatGPT)
-- ⏳ **`@unido/provider-claude`** - Claude adapter (required for Claude Desktop)
-- ⏳ **`@unido/components`** - UI components (optional)
-- ⏳ **`@unido/dev`** - Development utilities (optional)
-
-### For Now: Manual Setup Required
-
-Until the core packages are published, use the [Manual Setup](#manual-setup) guide above to:
-1. Clone this repository
-2. Build packages locally
-3. Link them in your project
-
-We're working on publishing all packages soon!
-
----
-
-## 🗺️ Roadmap
-
-### ✅ Phase 1: Foundation (Complete)
-- Core framework with type system
-- OpenAI adapter
-- Component system foundation
-
-### 🚧 Phase 2: Claude Support (In Progress)
-- Claude Desktop adapter
-- stdio transport implementation
-- Cross-platform testing
-
-### 📋 Phase 3: Developer Experience
-- CLI tool (`create-unido`)
-- Project templates
-- Hot reload development server
-- More example apps
-
-### 🔮 Phase 4: Ecosystem
-- Gemini adapter
-- Custom provider SDK
-- Component library
-- Production deployment guides
-
----
-
-## 🤔 FAQ
-
-### Why use Unido instead of platform SDKs?
-
-**Platform SDKs:**
-- Tied to one platform
-- Different APIs for each provider
-- Duplicate code for multi-platform support
-
-**Unido:**
-- Single codebase for all platforms
-- Consistent API across providers
-- Automatic schema conversion
-
-### Can I use this in production?
-
-Unido is in active development (v0.1.x). The core API is stable, but we recommend waiting for v1.0 for production use.
-
-### Which AI platforms are supported?
-
-Currently:
-- ✅ OpenAI ChatGPT (via OpenAI Apps)
-- 🚧 Anthropic Claude (via MCP stdio)
-- 📋 Google Gemini (planned)
-
-### How does Unido handle provider differences?
-
-Unido uses an adapter pattern. Each provider implements:
-- Schema conversion (Zod → platform schema)
-- Response formatting (universal → platform-specific)
-- Transport layer (HTTP, stdio, WebSocket)
-
-This means you write code once, and adapters handle the differences.
-
-### Is it compatible with Model Context Protocol?
-
-Yes! Unido is built on top of MCP and implements the specification for compatible providers (OpenAI, Claude).
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [contributing guide](CONTRIBUTING.md) (coming soon) for:
-- Development setup
-- Code style guidelines
-- Testing requirements
-- Pull request process
+- 🐛 Bug fixes
+- 📝 Documentation improvements
+- ✨ New features (check roadmap)
+- 🧪 Tests
+- 💡 Example apps
+- 🔌 New provider adapters
 
 ---
 
@@ -590,15 +571,27 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔗 Learn More
+## 🔗 Resources
 
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - The standard Unido builds on
-- **[OpenAI Apps SDK](https://developers.openai.com/apps-sdk)** - OpenAI's tool integration docs
 - **[Zod Documentation](https://zod.dev/)** - Schema validation library
-- **[Examples](examples/)** - Complete example applications
+- **[OpenAI Platform](https://platform.openai.com/)** - OpenAI API docs
 
 ---
 
+## 💬 Community & Support
+
+- 💬 **Questions?** [Open a discussion](https://github.com/bandofai/unido/discussions)
+- 🐛 **Bug reports:** [File an issue](https://github.com/bandofai/unido/issues)
+- 🌟 **Star us on GitHub** if you find this useful!
+- 🐦 **Follow updates:** [@bandofai](https://twitter.com/bandofai)
+
+---
+
+<div align="center">
+
 **Built with ❤️ for the AI developer community**
 
-*Have questions? Open an issue or start a discussion!*
+[Get Started](#-quick-start) • [Examples](#-examples) • [Contributing](#-contributing)
+
+</div>

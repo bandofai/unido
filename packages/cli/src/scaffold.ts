@@ -9,11 +9,12 @@ import { promisify } from 'node:util';
 import chalk from 'chalk';
 import {
   getBasicTemplate,
+  getBasicComponentSource,
   getGitignore,
-  getMultiProviderTemplate,
   getPackageJson,
   getReadme,
   getTsConfig,
+  getWeatherComponentSource,
   getWeatherTemplate,
 } from './templates.js';
 
@@ -22,13 +23,12 @@ const execAsync = promisify(exec);
 export interface ScaffoldOptions {
   projectName: string;
   template: string;
-  provider: string;
   skipInstall: boolean;
   skipGit: boolean;
 }
 
 export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
-  const { projectName, template, provider, skipInstall, skipGit } = options;
+  const { projectName, template, skipInstall, skipGit } = options;
 
   console.log(chalk.blue(`\n📦 Creating project: ${projectName}\n`));
 
@@ -49,10 +49,11 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   // Create src directory
   await mkdir(join(projectPath, 'src'));
+  await mkdir(join(projectPath, 'src', 'components'));
 
   // Write package.json
   console.log(chalk.gray('  Writing package.json...'));
-  const packageJson = getPackageJson(projectName, provider);
+  const packageJson = getPackageJson(projectName);
   await writeFile(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
   // Write tsconfig.json
@@ -67,28 +68,33 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   // Write README.md
   console.log(chalk.gray('  Writing README.md...'));
-  const readme = getReadme(projectName, provider);
+  const readme = getReadme(projectName);
   await writeFile(join(projectPath, 'README.md'), readme);
 
   // Write main application file based on template
   console.log(chalk.gray(`  Writing ${template} template...`));
   let appCode: string;
+  const componentFiles: Array<{ name: string; contents: string }> = [];
 
   switch (template) {
     case 'basic':
-      appCode = getBasicTemplate(provider);
+      appCode = getBasicTemplate();
+      componentFiles.push({ name: 'GreetingCard.tsx', contents: getBasicComponentSource() });
       break;
     case 'weather':
-      appCode = getWeatherTemplate(provider);
-      break;
-    case 'multi-provider':
-      appCode = getMultiProviderTemplate();
+      appCode = getWeatherTemplate();
+      componentFiles.push({ name: 'WeatherCard.tsx', contents: getWeatherComponentSource() });
       break;
     default:
-      appCode = getBasicTemplate(provider);
+      appCode = getBasicTemplate();
+      componentFiles.push({ name: 'GreetingCard.tsx', contents: getBasicComponentSource() });
   }
 
   await writeFile(join(projectPath, 'src', 'index.ts'), appCode);
+
+  for (const file of componentFiles) {
+    await writeFile(join(projectPath, 'src', 'components', file.name), file.contents);
+  }
 
   // Initialize git repository
   if (!skipGit) {

@@ -11,7 +11,7 @@ import type {
   ToolContext,
   UniversalResponse,
   UniversalTool,
-} from '@unido/core';
+} from '@bandofai/unido-core';
 import type { z } from 'zod';
 
 // ============================================================================

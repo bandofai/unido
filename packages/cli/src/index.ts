@@ -27,7 +27,6 @@ program
     let answers: {
       projectName: string;
       template: string;
-      provider: string;
       skipInstall: boolean;
       skipGit: boolean;
     };
@@ -68,15 +67,11 @@ program
         });
       }
 
-      // Provider is always OpenAI (only supported provider)
-      // Keep for future when more providers are added
-
       const promptAnswers = await inquirer.prompt(prompts as any);
 
       answers = {
         projectName: projectName || promptAnswers.projectName,
         template: options.template || promptAnswers.template,
-        provider: 'openai', // Default to OpenAI
         skipInstall: options.skipInstall || false,
         skipGit: options.skipGit || false,
       };
@@ -84,7 +79,6 @@ program
       answers = {
         projectName,
         template: options.template,
-        provider: 'openai', // Default to OpenAI
         skipInstall: options.skipInstall || false,
         skipGit: options.skipGit || false,
       };

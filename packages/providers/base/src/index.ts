@@ -1,5 +1,5 @@
 /**
- * @unido/provider-base
+ * @bandofai/unido-provider-base
  * Unido Provider Base - Base provider adapter interfaces and types
  */
 
@@ -11,6 +11,6 @@ export type {
   ProviderServer,
   ProviderServerInfo,
   ProviderToolDefinition,
-} from '@unido/provider-base/adapter.js';
+} from '@bandofai/unido-provider-base/adapter.js';
 
-export { BaseProviderAdapter } from '@unido/provider-base/adapter.js';
+export { BaseProviderAdapter } from '@bandofai/unido-provider-base/adapter.js';

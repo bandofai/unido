@@ -2,81 +2,11 @@
  * Universal component system for Unido
  */
 
-import type { ProviderName } from '@unido/core/types.js';
-
-// ============================================================================
-// Component Definition
-// ============================================================================
-
-export interface ComponentDefinition {
-  /**
-   * Component type/name (e.g., "weather-card")
-   */
-  type: string;
-
-  /**
-   * Human-readable title
-   */
-  title?: string;
-
-  /**
-   * Component description
-   */
-  description?: string;
-
-  /**
-   * Path to component source file (React component)
-   */
-  sourcePath: string;
-
-  /**
-   * Provider-specific metadata
-   */
-  metadata?: Record<ProviderName, ComponentMetadata>;
-}
-
-export interface ComponentMetadata {
-  /**
-   * Custom bundle configuration
-   */
-  bundleConfig?: Record<string, unknown>;
-
-  /**
-   * Provider-specific rendering hints
-   */
-  renderHints?: Record<string, unknown>;
-}
-
-// ============================================================================
-// Component Bundle
-// ============================================================================
-
-export interface ComponentBundle {
-  /**
-   * Component type
-   */
-  type: string;
-
-  /**
-   * Bundled JavaScript code
-   */
-  code: string;
-
-  /**
-   * Bundle URL (when served)
-   */
-  url?: string;
-
-  /**
-   * Source map (optional)
-   */
-  sourceMap?: string;
-
-  /**
-   * Provider this bundle is for
-   */
-  provider: ProviderName;
-}
+import type {
+  ComponentBundle,
+  ComponentDefinition,
+  ProviderName,
+} from '@bandofai/unido-core/types.js';
 
 // ============================================================================
 // Component Registry
