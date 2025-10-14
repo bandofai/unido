@@ -84,8 +84,16 @@ export function createHttpServer(
       transport.onclose = () => {
         console.log('📡 SSE client disconnected');
         connections.delete(sessionKey);
-        mcpServer
-          ?.close()
+
+        if (!mcpServer) {
+          return;
+        }
+
+        const serverToClose = mcpServer;
+        mcpServer = undefined;
+
+        serverToClose
+          .close()
           .catch((err) => {
             console.error('Error closing MCP server:', err);
           });

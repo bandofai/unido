@@ -6,7 +6,7 @@ This document provides context for the Gemini code-along agent to understand the
 
 **Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms (currently supporting OpenAI ChatGPT, with extensibility for future platforms). The core principle is "write once, run everywhere" - define tools and components once, and deploy to any AI provider.
 
-**Status**: Core framework complete (v0.1.0), OpenAI adapter functional and ready for use.
+**Status**: Core framework complete (v0.1.2) with an updated OpenAI adapter (v0.1.4) and CLI (v0.3.1).
 
 ## Build & Development Commands
 
@@ -14,10 +14,13 @@ This document provides context for the Gemini code-along agent to understand the
 # Install dependencies (must use pnpm)
 pnpm install
 
+# Within this repo link against workspace builds
+pnpm install --ignore-workspace
+
 # Build all packages (uses Turborepo caching)
 pnpm run build
 
-# Development mode with hot reload
+# Development mode with hot reload (via node --import tsx)
 pnpm run dev
 
 # Type checking across all packages
@@ -161,6 +164,27 @@ Uses `@modelcontextprotocol/sdk` (v1.0.6) and `zod-to-json-schema` (v3.24.1).
 3.  Register in app with `app.component()`
 4.  Bundle will be handled per provider (OpenAI bundles to `ui://` resources)
 
+Use the shared helper to locate source files from both `src/` and compiled `dist/`:
+
+```typescript
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+function resolveComponentPath(relativePath: string): string {
+  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
+  const distUrl = new URL(normalized.startsWith('components/') ? './' + normalized : './components/' + normalized, import.meta.url);
+  const distPath = fileURLToPath(distUrl);
+  if (existsSync(distPath)) return distPath;
+  return fileURLToPath(new URL('../src/' + normalized, import.meta.url));
+}
+
+app.component({
+  type: 'weather-card',
+  sourcePath: resolveComponentPath('components/WeatherCard.tsx'),
+  // ...
+});
+```
+
 ## Testing Strategy
 
 Run individual package tests:
@@ -183,6 +207,42 @@ cd examples/weather-app && pnpm run dev
 2.  **Strict TypeScript**: `strict: true`, `noUnusedLocals: true`, `noUncheckedIndexedAccess: true`
 3.  **Monorepo Dependencies**: Use `workspace:*` for internal package dependencies
 4.  **Build Order**: Turborepo handles dependency builds automatically via `dependsOn: ["^build"]`
+
+## MCP Inspector & Smoke Tests
+
+- Scaffolded playgrounds (`test-basic-app`, `test-weather-app`) live in the repo and point to the workspace packages using `link:` dependencies. Recreate them with:
+
+  ```bash
+  rm -rf test-basic-app && node packages/cli/dist/index.js test-basic-app --template basic --skip-git
+  rm -rf test-weather-app && node packages/cli/dist/index.js test-weather-app --template weather --skip-git
+  # inside each project
+  pnpm install --ignore-workspace
+  ```
+
+- Install the inspector once per project and run it from the bundled CLI directory (required with pnpm's layout):
+
+  ```bash
+  pnpm add -D @modelcontextprotocol/inspector
+  cd node_modules/@modelcontextprotocol/inspector/cli
+  node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+  node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+  ```
+
+- For automation, use the MCP SDK directly:
+
+  ```bash
+  node --import tsx <<'NODE'
+  import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+  import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+  const client = new Client({ name: 'smoke-test', version: '0.0.0' });
+  const transport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
+  await client.connect(transport);
+  console.log(await client.listTools());
+  console.log(await client.listResources());
+  await transport.close();
+  NODE
+  ```
 
 ## Next Implementation Priorities
 

@@ -11,18 +11,22 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
     main: './dist/index.js',
     scripts: {
       build: 'tsc',
-      dev: 'tsx src/index.ts',
+      dev: 'node --import tsx src/index.ts',
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
     },
     dependencies: {
-      '@bandofai/unido-core': '^0.1.1',
-      '@bandofai/unido-provider-openai': '^0.1.2',
-      '@bandofai/unido-components': '^0.1.2',
+      '@bandofai/unido-core': '^0.1.2',
+      '@bandofai/unido-provider-openai': '^0.1.4',
+      '@bandofai/unido-components': '^0.1.3',
+      'react': '^18.3.1',
+      'react-dom': '^18.3.1',
       'zod': '^3.24.1',
     },
     devDependencies: {
       '@types/node': '^22.10.7',
+      '@types/react': '^18.3.18',
+      '@types/react-dom': '^18.3.5',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
     },
@@ -37,8 +41,9 @@ export function getTsConfig(): Record<string, unknown> {
     compilerOptions: {
       target: 'ES2022',
       module: 'ESNext',
-      lib: ['ES2022'],
+      lib: ['ES2022', 'DOM', 'DOM.Iterable'],
       moduleResolution: 'bundler',
+      jsx: 'react-jsx',
       resolveJsonModule: true,
       outDir: './dist',
       rootDir: './src',
@@ -65,6 +70,7 @@ export function getGitignore(): string {
 node_modules/
 .pnp
 .pnp.js
+store/
 
 # Build output
 dist/
@@ -101,6 +107,18 @@ coverage/
 # Cache
 .turbo/
 .cache/
+`;
+}
+
+export function getNpmrc(): string {
+  return `# Use shared global store instead of creating local store folders
+store-dir=~/.pnpm-store
+
+# Hoist dependencies to root for better compatibility
+shamefully-hoist=true
+
+# Automatically install peer dependencies
+auto-install-peers=true
 `;
 }
 
@@ -173,16 +191,38 @@ MIT
 }
 
 export function getBasicTemplate(): string {
-  return `import { fileURLToPath } from 'node:url';
-import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';
+  return `import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
+import type { ComponentMetadata, ProviderName } from '@bandofai/unido-core';
 import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+function resolveComponentPath(relativePath: string): string {
+  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
+  const distUrl = new URL(
+    normalized.startsWith('components/') ? \`./\${normalized}\` : \`./components/\${normalized}\`,
+    import.meta.url
+  );
+  const distPath = fileURLToPath(distUrl);
+
+  if (existsSync(distPath)) {
+    return distPath;
+  }
+
+  const srcUrl = new URL(\`../src/\${normalized}\`, import.meta.url);
+  return fileURLToPath(srcUrl);
+}
 
 // ============================================================================
 // Register Components
 // ============================================================================
 
-const greetingCardPath = fileURLToPath(new URL('./components/GreetingCard.tsx', import.meta.url));
+const greetingCardPath = resolveComponentPath('components/GreetingCard.tsx');
 
 // ============================================================================
 // Create Unido App
@@ -207,7 +247,7 @@ app.component({
         widgetAccessible: true,
       },
     },
-  },
+  } as Partial<Record<ProviderName, ComponentMetadata>>,
 });
 
 // ============================================================================
@@ -280,10 +320,32 @@ process.on('SIGINT', async () => {
 }
 
 export function getWeatherTemplate(): string {
-  return `import { fileURLToPath } from 'node:url';
-import { createApp, textResponse, componentResponse } from '@bandofai/unido-core';
+  return `import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
+import type { ComponentMetadata, ProviderName } from '@bandofai/unido-core';
 import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+function resolveComponentPath(relativePath: string): string {
+  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
+  const distUrl = new URL(
+    normalized.startsWith('components/') ? \`./\${normalized}\` : \`./components/\${normalized}\`,
+    import.meta.url
+  );
+  const distPath = fileURLToPath(distUrl);
+
+  if (existsSync(distPath)) {
+    return distPath;
+  }
+
+  const srcUrl = new URL(\`../src/\${normalized}\`, import.meta.url);
+  return fileURLToPath(srcUrl);
+}
 
 // ============================================================================
 // Mock Weather API
@@ -298,13 +360,18 @@ interface WeatherData {
   updatedAt: string;
 }
 
+const CONDITIONS = ['Sunny', 'Cloudy', 'Rainy', 'Partly Cloudy'] as const;
+
 async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Promise<WeatherData> {
   const baseTemp = units === 'celsius' ? 22 : 72;
+
+  const conditionIndex = Math.floor(Math.random() * CONDITIONS.length);
+  const condition = CONDITIONS[conditionIndex] ?? 'Sunny';
 
   return {
     city,
     temperature: baseTemp + Math.random() * 10,
-    condition: ['Sunny', 'Cloudy', 'Rainy', 'Partly Cloudy'][Math.floor(Math.random() * 4)]!,
+    condition,
     humidity: 60 + Math.random() * 30,
     units,
     updatedAt: new Date().toISOString(),
@@ -315,7 +382,7 @@ async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Prom
 // Register Components
 // ============================================================================
 
-const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
+const weatherCardPath = resolveComponentPath('components/WeatherCard.tsx');
 
 // ============================================================================
 // Create Unido App
@@ -340,7 +407,7 @@ app.component({
         widgetAccessible: true,
       },
     },
-  },
+  } as Partial<Record<ProviderName, ComponentMetadata>>,
 });
 
 // ============================================================================

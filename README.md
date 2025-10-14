@@ -59,6 +59,8 @@ pnpm create unido
 
 Follow the prompts to choose your template (basic or weather example).
 
+> ℹ️ **Working inside this repo?** Install dependencies with `pnpm install --ignore-workspace` so the scaffolded app links against the local workspace packages instead of the published versions.
+
 ### 2. Run your app
 
 ```bash
@@ -74,6 +76,40 @@ Your server is now running on `http://localhost:3000` 🎉
 2. Enter `http://localhost:3000`
 3. Ask ChatGPT to use your tools!
 
+### 4. Inspect with MCP tools
+
+Install the CLI once per project:
+
+```bash
+pnpm add -D @modelcontextprotocol/inspector
+```
+
+Start your server (`pnpm run dev` or `pnpm run start`), then from a second terminal run:
+
+```bash
+cd node_modules/@modelcontextprotocol/inspector/cli
+node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+```
+
+> The inspector package currently expects to run from within its own directory when installed via pnpm. Running the commands above from the `cli` folder ensures the MCP client can resolve its metadata correctly.
+
+Need automation? The MCP SDK ships a lightweight client:
+
+```bash
+node --import tsx <<'NODE'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+const client = new Client({ name: 'smoke-test', version: '0.0.0' });
+const transport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
+await client.connect(transport);
+console.log(await client.listTools());
+console.log(await client.listResources());
+await transport.close();
+NODE
+```
+
 ---
 
 ## 📖 Complete Example
@@ -81,10 +117,27 @@ Your server is now running on `http://localhost:3000` 🎉
 Here's a complete weather tool that works across all platforms:
 
 ```typescript
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createApp, componentResponse } from '@bandofai/unido-core';
 import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
+
+function resolveComponentPath(relativePath: string): string {
+  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
+  const distUrl = new URL(
+    normalized.startsWith('components/') ? './' + normalized : './components/' + normalized,
+    import.meta.url
+  );
+  const distPath = fileURLToPath(distUrl);
+
+  if (existsSync(distPath)) {
+    return distPath;
+  }
+
+  const srcUrl = new URL('../src/' + normalized, import.meta.url);
+  return fileURLToPath(srcUrl);
+}
 
 // Create app with OpenAI provider
 const app = createApp({
@@ -96,7 +149,7 @@ const app = createApp({
 });
 
 // Register the widget component once
-const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
+const weatherCardPath = resolveComponentPath('components/WeatherCard.tsx');
 
 app.component({
   type: 'weather-card',

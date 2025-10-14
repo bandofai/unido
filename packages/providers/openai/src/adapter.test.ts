@@ -1,8 +1,8 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ComponentReference } from '@bandofai/unido-core';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OpenAIAdapter } from './adapter.js';
 
 const COMPONENT_TYPE = 'test-card';

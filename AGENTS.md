@@ -6,13 +6,16 @@ This file provides guidance to Codex (the GitHub CLI coding agent) when working 
 
 - **Product**: Unido — provider-agnostic TypeScript framework for AI apps that run on multiple LLM platforms (OpenAI today, extensible tomorrow).
 - **Mission**: "Write once, run everywhere" for tools, schemas, and UI components.
-- **Current State**: Core framework at v0.1.0 with a production-ready OpenAI adapter. Future adapters plug into the same abstractions.
+- **Current State**: Core framework at v0.1.2 with a production-ready OpenAI adapter (v0.1.4). Future adapters plug into the same abstractions.
 
 ## Core Commands
 
 ```bash
 # Install dependencies (must use pnpm)
 pnpm install
+
+# Inside this repo use local workspace builds
+pnpm install --ignore-workspace
 
 # Build all packages with Turborepo caching
 pnpm run build
@@ -117,6 +120,27 @@ import { createApp } from '../../../core/src/index.js';
 2. Export via `packages/components/src/index.ts`.
 3. Register with `app.component()`. Providers handle bundling/rendering.
 
+Use the helper emitted by the CLI templates to locate component sources when running from `src/` or built `dist/` bundles:
+
+```typescript
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+function resolveComponentPath(relativePath: string): string {
+  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
+  const distUrl = new URL(normalized.startsWith('components/') ? './' + normalized : './components/' + normalized, import.meta.url);
+  const distPath = fileURLToPath(distUrl);
+  if (existsSync(distPath)) return distPath;
+  return fileURLToPath(new URL('../src/' + normalized, import.meta.url));
+}
+
+app.component({
+  type: 'weather-card',
+  sourcePath: resolveComponentPath('components/WeatherCard.tsx'),
+  // ...
+});
+```
+
 ## Codex Operating Principles
 
 - Stay within pnpm/Turborepo conventions; do not introduce npm/yarn lockfiles.
@@ -125,5 +149,42 @@ import { createApp } from '../../../core/src/index.js';
 - Keep imports aligned with alias scheme and avoid bypassing adapters.
 - Document non-obvious logic with succinct comments; skip trivial narration.
 - When touching automation, ensure new providers or tools remain compatible with the universal contract.
+- Prefer `node --import tsx` when executing TypeScript entrypoints; the CLI now generates `dev` scripts in that form.
+
+## MCP Inspector & Smoke Tests
+
+- The repo keeps two scaffolded projects (`test-basic-app`, `test-weather-app`) linked to the local workspace via `link:` dependencies. Regenerate them with:
+
+  ```bash
+  rm -rf test-basic-app && node packages/cli/dist/index.js test-basic-app --template basic --skip-git
+  rm -rf test-weather-app && node packages/cli/dist/index.js test-weather-app --template weather --skip-git
+  # then inside each app
+  pnpm install --ignore-workspace
+  ```
+
+- Install the inspector once per project and run it from the package directory (required for pnpm layouts):
+
+  ```bash
+  pnpm add -D @modelcontextprotocol/inspector
+  cd node_modules/@modelcontextprotocol/inspector/cli
+  node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+  node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+  ```
+
+- For automation, use the MCP SDK directly:
+
+  ```bash
+  node --import tsx <<'NODE'
+  import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+  import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+  const client = new Client({ name: 'smoke-test', version: '0.0.0' });
+  const transport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
+  await client.connect(transport);
+  console.log(await client.listTools());
+  console.log(await client.listResources());
+  await transport.close();
+  NODE
+  ```
 
 By following these guidelines, Codex stays perfectly aligned with the expectations documented for Claude Code while keeping the project provider-agnostic.

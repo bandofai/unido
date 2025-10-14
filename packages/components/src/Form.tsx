@@ -90,8 +90,9 @@ export function Form({ fields, onSubmit, submitLabel = 'Submit', className = '' 
       id: field.name,
       name: field.name,
       value,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-        handleChange(field.name, e.target.value),
+      onChange: (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      ) => handleChange(field.name, e.target.value),
       placeholder: field.placeholder,
       required: field.required,
       style: {
@@ -140,9 +141,7 @@ export function Form({ fields, onSubmit, submitLabel = 'Submit', className = '' 
             }}
           >
             {field.label}
-            {field.required && (
-              <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>
-            )}
+            {field.required && <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>}
           </label>
           {renderField(field)}
           {errors[field.name] && (

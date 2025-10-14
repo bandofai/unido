@@ -11,6 +11,7 @@ import {
   getBasicTemplate,
   getBasicComponentSource,
   getGitignore,
+  getNpmrc,
   getPackageJson,
   getReadme,
   getTsConfig,
@@ -19,6 +20,24 @@ import {
 } from './templates.js';
 
 const execAsync = promisify(exec);
+
+function stringifyJson(value: unknown): string {
+  const json = JSON.stringify(value, null, 2);
+
+  return json.replace(/\[\n((?:\s{2,}"[^"]+"(?:,\n)?)+)\n(\s{2,})\]/g, (_match, items: string) => {
+    const compactItems = items
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter(Boolean)
+      .join(', ');
+
+    return `[${compactItems}]`;
+  });
+}
+
+async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
+  await writeFile(filePath, `${stringifyJson(value)}\n`);
+}
 
 export interface ScaffoldOptions {
   projectName: string;
@@ -54,17 +73,22 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   // Write package.json
   console.log(chalk.gray('  Writing package.json...'));
   const packageJson = getPackageJson(projectName);
-  await writeFile(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+  await writeJsonFile(join(projectPath, 'package.json'), packageJson);
 
   // Write tsconfig.json
   console.log(chalk.gray('  Writing tsconfig.json...'));
   const tsConfig = getTsConfig();
-  await writeFile(join(projectPath, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2));
+  await writeJsonFile(join(projectPath, 'tsconfig.json'), tsConfig);
 
   // Write .gitignore
   console.log(chalk.gray('  Writing .gitignore...'));
   const gitignore = getGitignore();
   await writeFile(join(projectPath, '.gitignore'), gitignore);
+
+  // Write .npmrc
+  console.log(chalk.gray('  Writing .npmrc...'));
+  const npmrc = getNpmrc();
+  await writeFile(join(projectPath, '.npmrc'), npmrc);
 
   // Write README.md
   console.log(chalk.gray('  Writing README.md...'));
@@ -113,12 +137,18 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   // Install dependencies
   if (!skipInstall) {
     console.log(chalk.gray('\n  Installing dependencies...\n'));
+    let packageManager = 'pnpm';
     try {
       // Detect package manager
-      const packageManager = await detectPackageManager();
+      packageManager = await detectPackageManager();
       console.log(chalk.blue(`  Using ${packageManager}...\n`));
 
-      const { stdout, stderr } = await execAsync(`${packageManager} install`, {
+      const installCommand =
+        packageManager === 'pnpm'
+          ? `${packageManager} install --ignore-workspace`
+          : `${packageManager} install`;
+
+      const { stdout, stderr } = await execAsync(installCommand, {
         cwd: projectPath,
         env: { ...process.env, PNPM_HOME: projectPath },
       });
@@ -129,7 +159,11 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
       console.log(chalk.green('\n  ✅ Dependencies installed successfully!\n'));
     } catch (error) {
       console.log(chalk.yellow('\n  ⚠️  Installation failed. Please run the following command manually:\n'));
-      console.log(chalk.white(`    cd ${projectName} && pnpm install\n`));
+      const suggestedCommand =
+        packageManager === 'pnpm'
+          ? `cd ${projectName} && pnpm install --ignore-workspace`
+          : `cd ${projectName} && ${packageManager} install`;
+      console.log(chalk.white(`    ${suggestedCommand}\n`));
       if (error instanceof Error) {
         console.log(chalk.gray(`  Error: ${error.message}\n`));
       }

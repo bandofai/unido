@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-components",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Unido Components - Universal UI components for AI applications",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,7 +21,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@bandofai/unido-core": "^0.1.1",
+    "@bandofai/unido-core": "workspace:^0.1.3",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "react": "^18.3.1",
@@ -46,11 +46,5 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": [
-    "unido",
-    "components",
-    "ui",
-    "react",
-    "ai"
-  ]
+  "keywords": ["unido", "components", "ui", "react", "ai"]
 }
