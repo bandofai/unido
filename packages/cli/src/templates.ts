@@ -630,9 +630,18 @@ async function startTunnel() {
     console.log('☁️  Starting Cloudflare Tunnel...\\n');
     console.log(\`🔌 Connecting to http://localhost:\${PORT}...\\n\`);
 
-    // Start cloudflared tunnel
-    const { url, connections, child, stop } = await tunnel({
+    // Start cloudflared tunnel - it returns the tunnel instance
+    const tunnelInstance = tunnel({
       '--url': \`http://localhost:\${PORT}\`,
+    });
+
+    // Wait for the tunnel URL
+    const url = await new Promise((resolve, reject) => {
+      tunnelInstance.once('url', resolve);
+      tunnelInstance.once('error', reject);
+
+      // Timeout after 30 seconds
+      setTimeout(() => reject(new Error('Tunnel startup timeout')), 30000);
     });
 
     console.log('✅ Tunnel started successfully!\\n');
@@ -643,11 +652,9 @@ async function startTunnel() {
     console.log(\`  2. Add Server: \${url}\\n\`);
     console.log('Press Ctrl+C to stop the tunnel\\n');
 
-    // Log connection info
-    connections.then((conns) => {
-      console.log('📊 Connections:', conns);
-    }).catch(() => {
-      // Ignore connection info errors
+    // Optional: Log when connected
+    tunnelInstance.once('connected', (info) => {
+      console.log(\`📊 Connected to Cloudflare edge: \${info.location || 'unknown location'}\`);
     });
 
     // Handle shutdown gracefully
@@ -656,15 +663,16 @@ async function startTunnel() {
       if (isShuttingDown) return;
       isShuttingDown = true;
       console.log('\\n\\n👋 Stopping tunnel...');
-      await stop();
-      process.exit(0);
+      tunnelInstance.stop();
+      // Give it a moment to cleanup
+      setTimeout(() => process.exit(0), 1000);
     };
 
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
 
-    // Wait for the child process to exit
-    child.on('exit', (code) => {
+    // Handle tunnel exit
+    tunnelInstance.on('exit', (code) => {
       if (!isShuttingDown) {
         console.error(\`\\n❌ Tunnel process exited unexpectedly with code \${code}\`);
         process.exit(code || 1);
@@ -682,8 +690,12 @@ async function startTunnel() {
     console.error('  2. Check your internet connection');
     console.error('  3. Try restarting the tunnel\\n');
 
-    if (error.message?.includes('ECONNREFUSED')) {
+    if (error.message?.includes('ECONNREFUSED') || error.message?.includes('connection')) {
       console.error(\`💡 Connection refused - ensure your app is running on port \${PORT}\\n\`);
+    }
+
+    if (error.message?.includes('timeout')) {
+      console.error('💡 Tunnel startup timed out - check your internet connection\\n');
     }
 
     process.exit(1);
