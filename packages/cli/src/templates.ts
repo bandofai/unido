@@ -21,7 +21,6 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       '@bandofai/unido-core': '^0.1.4',
       '@bandofai/unido-provider-openai': '^0.1.6',
       '@bandofai/unido-components': '^0.1.6',
-      'dotenv': '^16.4.7',
       'react': '^18.3.1',
       'react-dom': '^18.3.1',
       'zod': '^3.24.1',
@@ -30,7 +29,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       '@types/node': '^22.10.7',
       '@types/react': '^18.3.18',
       '@types/react-dom': '^18.3.5',
-      '@ngrok/ngrok': '^1.5.0',
+      cloudflared: '^0.7.1',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
     },
@@ -186,41 +185,40 @@ For local development (testing on your machine only):
 4. Enter URL: http://localhost:3000
 5. Start using your tools in ChatGPT!
 
-### Public Access with ngrok (HTTPS)
+### Public Access with Cloudflare Tunnel (HTTPS)
 
 To expose your server publicly with HTTPS (for ChatGPT access from anywhere):
 
-1. **Install ngrok globally (one-time setup):**
-   \`\`\`bash
-   npm install -g ngrok
-   \`\`\`
-
-2. **Create a free ngrok account and get your authtoken:**
-   - Sign up at https://dashboard.ngrok.com/signup
-   - Copy your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
-   - Authenticate: \`ngrok config add-authtoken YOUR_TOKEN\`
-
-3. **Start your server:**
+1. **Start your server:**
    \`\`\`bash
    npm run dev
    \`\`\`
 
-4. **In a new terminal, start the ngrok tunnel:**
+2. **In a new terminal, start the Cloudflare Tunnel:**
    \`\`\`bash
    npm run tunnel
    \`\`\`
 
-   This will output something like:
+   This will automatically:
+   - Download cloudflared binary (first run only)
+   - Create a secure HTTPS tunnel
+   - Output your public URL like:
    \`\`\`
-   Forwarding    https://abc123.ngrok.io -> http://localhost:3000
+   ☁️  Starting Cloudflare Tunnel...
+   ✅ Tunnel started successfully!
+   📡 Public URL: https://random-name.trycloudflare.com
    \`\`\`
 
-5. **Configure ChatGPT:**
+3. **Configure ChatGPT:**
    - Open ChatGPT → Settings → Custom Tools
-   - Add Server with URL: \`https://abc123.ngrok.io\`
+   - Add Server with the URL shown (e.g., \`https://random-name.trycloudflare.com\`)
    - Your MCP server is now accessible via HTTPS!
 
-**Note:** The free ngrok URL changes each time you restart the tunnel. For a static domain, upgrade to ngrok's paid plan.
+**Benefits:**
+- ✅ **No account needed** - works instantly
+- ✅ **Free HTTPS tunnel** - no limits or trials
+- ✅ **Fast & reliable** - powered by Cloudflare's network
+- ⚠️ **URL changes** - each restart gets a new random URL
 
 ## Build
 
@@ -623,36 +621,20 @@ export default WeatherCard;
 
 export function getTunnelScript(): string {
   return `#!/usr/bin/env node
-import ngrok from '@ngrok/ngrok';
-import { config } from 'dotenv';
+import { tunnel } from 'cloudflared';
 
-// Load environment variables
-config();
-
-const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN;
-const PORT = process.env.PORT || '3000';
+const PORT = process.env.PORT || 3000;
 
 async function startTunnel() {
   try {
-    console.log('🚇 Starting ngrok tunnel...\\n');
+    console.log('☁️  Starting Cloudflare Tunnel...\\n');
+    console.log(\`🔌 Connecting to http://localhost:\${PORT}...\\n\`);
 
-    if (!NGROK_AUTHTOKEN) {
-      console.error('❌ Error: NGROK_AUTHTOKEN not found in .env file\\n');
-      console.log('Please add your ngrok authtoken to .env:');
-      console.log('  NGROK_AUTHTOKEN=your_token_here\\n');
-      console.log('Get your authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken\\n');
-      process.exit(1);
-    }
-
-    console.log('🔌 Connecting to ngrok...\\n');
-
-    // Connect using @ngrok/ngrok
-    const listener = await ngrok.forward({
-      addr: PORT,
-      authtoken: NGROK_AUTHTOKEN,
+    // Start cloudflared tunnel
+    const { url, connections, child, stop } = await tunnel({
+      '--url': \`http://localhost:\${PORT}\`,
     });
 
-    const url = listener.url();
     console.log('✅ Tunnel started successfully!\\n');
     console.log(\`📡 Public URL: \${url}\`);
     console.log(\`🔗 Local URL:  http://localhost:\${PORT}\\n\`);
@@ -661,19 +643,33 @@ async function startTunnel() {
     console.log(\`  2. Add Server: \${url}\\n\`);
     console.log('Press Ctrl+C to stop the tunnel\\n');
 
-    // Keep the process alive with SIGINT handler
+    // Log connection info
+    connections.then((conns) => {
+      console.log('📊 Connections:', conns);
+    }).catch(() => {
+      // Ignore connection info errors
+    });
+
+    // Handle shutdown gracefully
     let isShuttingDown = false;
-    process.on('SIGINT', async () => {
+    const shutdown = async () => {
       if (isShuttingDown) return;
       isShuttingDown = true;
       console.log('\\n\\n👋 Stopping tunnel...');
-      await listener.close();
+      await stop();
       process.exit(0);
-    });
+    };
 
-    // Keep process alive by waiting on the listener
-    // The ngrok listener keeps the event loop active
-    await listener.join();
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+
+    // Wait for the child process to exit
+    child.on('exit', (code) => {
+      if (!isShuttingDown) {
+        console.error(\`\\n❌ Tunnel process exited unexpectedly with code \${code}\`);
+        process.exit(code || 1);
+      }
+    });
   } catch (error: any) {
     console.error('\\n❌ Failed to start tunnel\\n');
 
@@ -682,14 +678,12 @@ async function startTunnel() {
     }
 
     console.error('Common solutions:');
-    console.error('  1. Make sure your server is running on port', PORT);
-    console.error('  2. Verify your NGROK_AUTHTOKEN is valid');
-    console.error('  3. Check if you have an active ngrok session at https://dashboard.ngrok.com/tunnels/agents');
-    console.error('  4. Update your ngrok package: npm install @ngrok/ngrok@latest\\n');
+    console.error(\`  1. Make sure your server is running on port \${PORT}\`);
+    console.error('  2. Check your internet connection');
+    console.error('  3. Try restarting the tunnel\\n');
 
-    if (error.message?.includes('agent version') || error.message?.includes('ERR_NGROK_121')) {
-      console.error('💡 Your ngrok package version is outdated.');
-      console.error('   Run: npm install @ngrok/ngrok@latest\\n');
+    if (error.message?.includes('ECONNREFUSED')) {
+      console.error(\`💡 Connection refused - ensure your app is running on port \${PORT}\\n\`);
     }
 
     process.exit(1);
@@ -701,11 +695,7 @@ startTunnel();
 }
 
 export function getEnvExample(): string {
-  return `# ngrok Configuration
-# Get your authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken
-NGROK_AUTHTOKEN=your_ngrok_authtoken_here
-
-# Server Configuration
+  return `# Server Configuration
 PORT=3000
 `;
 }
