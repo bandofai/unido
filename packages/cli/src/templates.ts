@@ -15,6 +15,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
       inspect: 'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
+      tunnel: 'ngrok http 3000',
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.4',
@@ -28,6 +29,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       '@types/node': '^22.10.7',
       '@types/react': '^18.3.18',
       '@types/react-dom': '^18.3.5',
+      ngrok: '^5.0.0-beta.2',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
     },
@@ -173,11 +175,51 @@ The inspector works with both development (\`npm run dev\`) and production (\`np
 
 ## OpenAI ChatGPT Setup
 
+### Local Development
+
+For local development (testing on your machine only):
+
 1. Make sure your development server is running
 2. Open ChatGPT → Settings → Custom Tools
 3. Click "Add Server"
 4. Enter URL: http://localhost:3000
 5. Start using your tools in ChatGPT!
+
+### Public Access with ngrok (HTTPS)
+
+To expose your server publicly with HTTPS (for ChatGPT access from anywhere):
+
+1. **Install ngrok globally (one-time setup):**
+   \`\`\`bash
+   npm install -g ngrok
+   \`\`\`
+
+2. **Create a free ngrok account and get your authtoken:**
+   - Sign up at https://dashboard.ngrok.com/signup
+   - Copy your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
+   - Authenticate: \`ngrok config add-authtoken YOUR_TOKEN\`
+
+3. **Start your server:**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
+
+4. **In a new terminal, start the ngrok tunnel:**
+   \`\`\`bash
+   npm run tunnel
+   \`\`\`
+
+   This will output something like:
+   \`\`\`
+   Forwarding    https://abc123.ngrok.io -> http://localhost:3000
+   \`\`\`
+
+5. **Configure ChatGPT:**
+   - Open ChatGPT → Settings → Custom Tools
+   - Add Server with URL: \`https://abc123.ngrok.io\`
+   - Your MCP server is now accessible via HTTPS!
+
+**Note:** The free ngrok URL changes each time you restart the tunnel. For a static domain, upgrade to ngrok's paid plan.
 
 ## Build
 
