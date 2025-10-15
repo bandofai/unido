@@ -577,18 +577,39 @@ We welcome contributions! Here's how you can help:
 git clone https://github.com/bandofai/unido.git
 cd unido
 
-# Install dependencies
+# Quick setup (installs, builds, and links CLI)
+./scripts/dev-setup.sh
+
+# Or manual setup
 pnpm install
-
-# Build all packages
 pnpm run build
-
-# Run tests
-pnpm run test
-
-# Development mode (watch)
-pnpm run dev
 ```
+
+### Development Workflow
+
+```bash
+# Watch all packages for changes
+pnpm run dev
+
+# Test CLI locally
+pnpm run cli:test my-test-app --template basic
+
+# Quick test with helper script
+./scripts/local-test.sh basic my-test
+
+# Run smoke tests before committing
+./scripts/smoke-test.sh
+
+# Type check and lint
+pnpm run type-check
+pnpm run lint
+```
+
+**📚 Detailed Guides:**
+- [QUICKSTART.md](QUICKSTART.md) - Quick reference for daily development
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Comprehensive development guide
+- [scripts/README.md](scripts/README.md) - Helper scripts documentation
+- [CLAUDE.md](CLAUDE.md) - Architecture and conventions
 
 ### Project Structure
 

@@ -14,6 +14,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       dev: 'node --import tsx src/index.ts',
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
+      inspect: 'node node_modules/@modelcontextprotocol/inspector/build/index.js http://localhost:3000/sse --transport sse --method tools/list',
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.2',
@@ -24,6 +25,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       'zod': '^3.24.1',
     },
     devDependencies: {
+      '@modelcontextprotocol/inspector': '^0.1.6',
       '@types/node': '^22.10.7',
       '@types/react': '^18.3.18',
       '@types/react-dom': '^18.3.5',
@@ -148,6 +150,27 @@ npm run dev
 \`\`\`
 
 The server will run on http://localhost:3000
+
+### Testing with MCP Inspector
+
+You can verify your MCP server is working correctly using the MCP Inspector. Make sure your server is running first (\`npm run dev\` or \`npm run start\`).
+
+**List all tools:**
+\`\`\`bash
+npm run inspect
+\`\`\`
+
+**List all resources:**
+\`\`\`bash
+node node_modules/@modelcontextprotocol/inspector/build/index.js http://localhost:3000/sse --transport sse --method resources/list
+\`\`\`
+
+**Test a specific tool:**
+\`\`\`bash
+node node_modules/@modelcontextprotocol/inspector/build/index.js http://localhost:3000/sse --transport sse --method tools/call --params '{"name":"greet","arguments":{"name":"World"}}'
+\`\`\`
+
+The inspector works with both development (\`npm run dev\`) and production (\`npm run start\`) builds as both use port 3000.
 
 ## OpenAI ChatGPT Setup
 

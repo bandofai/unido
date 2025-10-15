@@ -1,59 +1,42 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**Context for Claude Code (claude.ai/code)** when working with this repository.
+
+---
+
+## 📋 Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Quick Reference](#quick-reference)
+3. [Architecture](#architecture)
+4. [Package Structure](#package-structure)
+5. [Development Workflows](#development-workflows)
+6. [Testing & Validation](#testing--validation)
+7. [Code Conventions](#code-conventions)
+8. [Common Tasks](#common-tasks)
+9. [Troubleshooting](#troubleshooting)
+
+---
 
 ## Project Overview
 
-**Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms (currently supporting OpenAI ChatGPT, with extensibility for future platforms). The core principle is "write once, run everywhere" - define tools and components once, deploy to any AI provider.
+### What is Unido?
 
-**Status**: Core framework complete (v0.1.2) with an updated OpenAI adapter (v0.1.4) and CLI (v0.3.1) ready for use.
+**Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms. The core principle is **"write once, run everywhere"** - define tools and components once, deploy to any AI provider.
 
-## Build & Development Commands
+**Current Status** (as of January 2025):
+- ✅ Core framework: `@bandofai/unido-core` v0.1.3
+- ✅ OpenAI adapter: `@bandofai/unido-provider-openai` v0.1.5
+- ✅ CLI tool: `create-unido` v0.3.3
+- ✅ Component system: `@bandofai/unido-components` v0.1.4
+- 🚧 HTTP/SSE server implementation complete and working
+- 🚧 Component bundling system operational
+- 🔜 Additional provider adapters (architecture ready)
 
-```bash
-# Install dependencies (must use pnpm)
-pnpm install
-
-# Within this repo link against workspace builds
-pnpm install --ignore-workspace
-
-# Build all packages (uses Turborepo caching)
-pnpm run build
-
-# Development mode with hot reload (via node --import tsx)
-pnpm run dev
-
-# Type checking across all packages
-pnpm run type-check
-
-# Lint all packages
-pnpm run lint
-
-# Run tests
-pnpm run test
-
-# Clean all build artifacts
-pnpm run clean
-
-# Build/work on specific package
-cd packages/core && pnpm run build
-cd packages/core && pnpm run dev
-```
-
-**Important**: This is a pnpm workspace monorepo with Turborepo. Build dependencies are automatically handled (`^build` in turbo.json means "build dependencies first").
-
-## Architecture Overview
-
-### Core Design Pattern: Provider Adapters
-
-The framework uses an adapter pattern to abstract AI provider differences:
-
-1. **Universal API** (`@bandofai/unido-core`): Developer-facing API using Zod schemas
-2. **Provider Adapters** (`@bandofai/unido-provider-*`): Convert universal format to provider-specific protocols
-3. **MCP Protocol**: All providers implement Model Context Protocol (v2025-06-18)
+### Core Philosophy
 
 ```typescript
-// Universal tool definition (works everywhere)
+// Write once...
 app.tool('get_weather', {
   description: 'Get weather for a city',
   input: z.object({ city: z.string() }),
@@ -63,188 +46,889 @@ app.tool('get_weather', {
   })
 });
 
-// OpenAI adapter → MCP + HTTP/SSE + JSON Schema
-// Future adapters can be added with provider-specific implementations
+// ...runs on OpenAI (today) and future providers (tomorrow)
+```
+
+The framework abstracts provider differences through adapters while maintaining type safety, runtime validation, and rich UI capabilities.
+
+---
+
+## Quick Reference
+
+### Essential Commands
+
+```bash
+# Initial Setup
+pnpm install                    # Install all dependencies
+./scripts/dev-setup.sh          # Complete setup (recommended)
+
+# Development
+pnpm run dev                    # Watch mode for all packages
+pnpm run build                  # Build all packages
+pnpm run type-check             # TypeScript validation
+pnpm run lint                   # Run linter
+pnpm run test                   # Run tests
+
+# CLI Testing
+pnpm run cli:test my-app        # Test CLI directly
+./scripts/local-test.sh basic   # Quick test helper
+./scripts/smoke-test.sh         # Run full smoke tests
+
+# Package-specific
+cd packages/core && pnpm run dev     # Watch specific package
+cd packages/core && pnpm run build   # Build specific package
+```
+
+### Documentation Quick Links
+
+- [QUICKSTART.md](QUICKSTART.md) - Daily development reference
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Comprehensive development guide
+- [README.md](README.md) - User-facing documentation
+- [scripts/README.md](scripts/README.md) - Helper scripts guide
+
+### Monorepo Structure
+
+This is a **pnpm workspace** managed by **Turborepo**:
+- Dependencies are automatically handled (`^build` in `turbo.json`)
+- Internal packages use `workspace:*` dependencies
+- Build artifacts cached for performance
+- Must use pnpm (npm/yarn not supported)
+
+---
+
+## Architecture
+
+### Core Design Pattern: Provider Adapters
+
+The framework uses a three-layer architecture:
+
+```
+┌─────────────────────────────────────┐
+│   Universal API (Developer-Facing)  │
+│   @bandofai/unido-core               │
+│   - Zod schemas                      │
+│   - Type-safe tool definitions       │
+│   - Component registry               │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│      Provider Adapters               │
+│   @bandofai/unido-provider-*         │
+│   - Schema conversion                │
+│   - Protocol translation             │
+│   - Transport implementation         │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│      AI Provider Platforms           │
+│   - OpenAI ChatGPT (HTTP/SSE)        │
+│   - Future providers (extensible)    │
+└─────────────────────────────────────┘
 ```
 
 ### Key Architectural Decisions
 
-**Zod for Schema Definition**: Runtime validation + compile-time types + converts to JSON Schema for MCP. All tool inputs use Zod schemas.
+#### 1. Zod for Schema Definition
 
-**Component System**: Returns `UniversalResponse` with both `content` (text/images) and optional `component` (UI reference). Components registered via `app.component()` are bundled on startup and exposed as MCP `ui://widget/...` resources so ChatGPT can fetch the HTML/JS bundle. Providers can adapt rendering strategies if they need something different:
-- OpenAI: React bundled to `ui://` resources
-- Future providers: Can implement their own component rendering strategies
+**Why:** Runtime validation + compile-time types + JSON Schema conversion
 
-**MCP as Foundation**: OpenAI uses Model Context Protocol (JSON-RPC 2.0) with HTTP + Server-Sent Events transport. Future providers can implement MCP or other protocols as needed.
+```typescript
+// One schema, three benefits:
+const weatherInput = z.object({
+  city: z.string().describe('City name'),
+  units: z.enum(['celsius', 'fahrenheit']).default('celsius')
+});
 
-### Package Structure
+// 1. TypeScript types inferred automatically
+type WeatherInput = z.infer<typeof weatherInput>;
+
+// 2. Runtime validation with detailed errors
+const result = weatherInput.parse(userInput);
+
+// 3. Converts to JSON Schema for MCP
+const jsonSchema = zodToJsonSchema(weatherInput);
+```
+
+#### 2. Component System
+
+**Why:** Rich UI responses with provider-specific rendering
+
+```typescript
+// Universal response format
+return componentResponse(
+  'weather-card',               // Component type
+  { city, temperature },        // Props
+  'Fallback text'               // Text for non-UI contexts
+);
+
+// Rendering strategy per provider:
+// - OpenAI: React → HTML bundle → ui://widget/...
+// - Future: Provider-specific implementations
+```
+
+Components registered via `app.component()` are:
+- Bundled on server startup
+- Exposed as MCP resources (`ui://widget/<name>.html`)
+- Fetched by ChatGPT when needed
+- Rendered in ChatGPT interface with full interactivity
+
+#### 3. MCP (Model Context Protocol) Foundation
+
+**Why:** Industry-standard protocol for AI tools
+
+- Protocol: JSON-RPC 2.0
+- Transport: HTTP + Server-Sent Events (OpenAI)
+- Spec version: v2025-06-18
+- SDK: `@modelcontextprotocol/sdk` v1.0.6
+
+OpenAI adapter implements MCP fully. Future adapters can:
+- Reuse MCP implementation
+- Implement alternative protocols
+- Extend with provider-specific features
+
+### Package Architecture
 
 ```
-@bandofai/unido-core              # Main API: createApp(), tool registration, Zod schemas
-@bandofai/unido-provider-base     # ProviderAdapter interface, base implementation
-@bandofai/unido-provider-openai   # OpenAI adapter with MCP SDK + zod-to-json-schema
-@bandofai/unido-components        # React components (Card, etc.)
-@unido/dev               # Development server utilities
+@bandofai/unido-core (v0.1.3)
+├── API surface: createApp(), tool(), component()
+├── Type system: UniversalTool, UniversalResponse
+├── Schema utilities: Zod integration
+└── Component registry
+
+@bandofai/unido-provider-base (v0.1.3)
+├── ProviderAdapter interface
+├── Base adapter implementation
+├── Lifecycle hooks: startServer(), stopServer()
+└── Conversion contracts: schema, tool, response
+
+@bandofai/unido-provider-openai (v0.1.5)
+├── MCP SDK integration
+├── HTTP/SSE server implementation
+├── JSON Schema conversion (zod-to-json-schema)
+├── Component bundling system
+└── OpenAI-specific metadata handling
+
+@bandofai/unido-components (v0.1.4)
+├── React component library
+├── Shared UI primitives
+└── Theme system
+
+create-unido (v0.3.3)
+├── Interactive CLI scaffolding
+├── Project templates (basic, weather)
+├── Dependency management
+└── Development setup
+
+@unido/dev (v0.1.0)
+└── Development utilities
 ```
+
+---
+
+## Package Structure
+
+### Core Package (`packages/core/`)
+
+**Purpose:** Universal API and type system
+
+#### Key Files
+
+- **[app.ts](packages/core/src/app.ts)**: `Unido` class and `createApp()` factory
+  - App lifecycle management
+  - Provider initialization
+  - Tool and component registration
+  - Server startup/shutdown
+
+- **[types.ts](packages/core/src/types.ts)**: Core type definitions
+  - `UniversalTool`: Tool definition interface
+  - `UniversalResponse`: Response format
+  - `ProviderConfig`: Provider configuration
+  - `ToolHandler`: Handler function signature
+  - `ComponentDefinition`: Component metadata
+
+- **[tool.ts](packages/core/src/tool.ts)**: Tool registration system
+  - Tool validation
+  - Handler wrapping
+  - Metadata management
+
+- **[component.ts](packages/core/src/component.ts)**: Component registry
+  - Component registration
+  - Metadata tracking
+  - Source path resolution
+
+- **[schema.ts](packages/core/src/schema.ts)**: Zod utilities
+  - Schema validation helpers
+  - Type inference utilities
+  - Error formatting
+
+### Provider Base (`packages/providers/base/`)
+
+**Purpose:** Abstract adapter contract
+
+#### Key File
+
+- **[adapter.ts](packages/providers/base/src/adapter.ts)**: `ProviderAdapter` interface
+
+```typescript
+interface ProviderAdapter {
+  // Schema conversion: Zod → Provider format
+  convertSchema(zodSchema: ZodSchema): ProviderSchema;
+
+  // Tool conversion: Universal → Provider tool
+  convertTool(tool: UniversalTool): ProviderTool;
+
+  // Response conversion: Universal → Provider response
+  convertResponse(response: UniversalResponse): ProviderResponse;
+
+  // Lifecycle: Initialize provider server
+  startServer(): Promise<void>;
+
+  // Lifecycle: Cleanup and shutdown
+  stopServer(): Promise<void>;
+}
+```
+
+### OpenAI Provider (`packages/providers/openai/`)
+
+**Purpose:** OpenAI ChatGPT integration via MCP
+
+#### Key Files
+
+- **[adapter.ts](packages/providers/openai/src/adapter.ts)**: Main OpenAI adapter
+  - MCP server initialization
+  - HTTP/SSE transport setup
+  - Tool/resource conversion
+  - Component bundling
+
+- **[server.ts](packages/providers/openai/src/server.ts)**: HTTP/SSE server
+  - Express.js server setup
+  - SSE connection management
+  - Health check endpoint
+  - CORS configuration
+
+#### Dependencies
+
+- `@modelcontextprotocol/sdk` v1.0.6 - MCP protocol implementation
+- `zod-to-json-schema` v3.24.1 - Schema conversion
+- `express` - HTTP server
+- `cors` - CORS middleware
+
+#### OpenAI Metadata Format
+
+```typescript
+{
+  _meta: {
+    "openai/outputTemplate": "ui://widget/weather-card.html",
+    "openai/widgetAccessible": true,     // Enable UI interactions
+    "openai/renderHints": {
+      "preferredSize": "medium"
+    }
+  }
+}
+```
+
+### Components Package (`packages/components/`)
+
+**Purpose:** Shared React components
+
+```
+packages/components/src/
+├── Card.tsx              # Basic card component
+├── WeatherCard.tsx       # Weather display component
+├── index.ts              # Exports
+└── types.ts              # Shared types
+```
+
+### CLI Package (`packages/cli/`)
+
+**Purpose:** Project scaffolding tool
+
+#### Key Files
+
+- **[index.ts](packages/cli/src/index.ts)**: CLI entry point (Commander.js)
+- **[scaffold.ts](packages/cli/src/scaffold.ts)**: Project generation logic
+- **[templates.ts](packages/cli/src/templates.ts)**: Template definitions
+- **[utils.ts](packages/cli/src/utils.ts)**: Helper functions
+
+---
+
+## Development Workflows
 
 ### TypeScript Path Aliases
 
-**Critical**: Use path aliases for internal imports:
+**CRITICAL:** Always use configured path aliases, never relative imports:
 
 ```typescript
-// ✅ Correct
+// ✅ Correct - uses tsconfig.base.json aliases
 import { createApp } from '@bandofai/unido-core';
 import { ProviderAdapter } from '@bandofai/unido-provider-base';
+import { openAI } from '@bandofai/unido-provider-openai';
+import { Card } from '@bandofai/unido-components';
 
-// ❌ Wrong
+// ❌ Wrong - breaks when moving files
 import { createApp } from '../../../core/src/index.js';
+import { ProviderAdapter } from '../../providers/base/src/adapter.js';
 ```
 
 Configured in [tsconfig.base.json](tsconfig.base.json):
 - `@bandofai/unido-core` → `packages/core/src/`
 - `@bandofai/unido-provider-base` → `packages/providers/base/src/`
 - `@bandofai/unido-provider-openai` → `packages/providers/openai/src/`
+- `@bandofai/unido-components` → `packages/components/src/`
 
-## Key Files & Responsibilities
+### Adding a New Tool
 
-### Core Package (`packages/core/`)
+**Step 1:** Define tool with Zod schema
 
-- [types.ts](packages/core/src/types.ts): All core types (`UniversalTool`, `UniversalResponse`, `ProviderConfig`, `ToolHandler`)
-- [schema.ts](packages/core/src/schema.ts): Zod schema utilities
-- [tool.ts](packages/core/src/tool.ts): Tool registration helpers
-- [component.ts](packages/core/src/component.ts): Component registry
-- [app.ts](packages/core/src/app.ts): `Unido` class and `createApp()` factory
-
-### Provider Base (`packages/providers/base/`)
-
-- [adapter.ts](packages/providers/base/src/adapter.ts): `ProviderAdapter` interface (all adapters must implement)
-  - `convertSchema(zodSchema)`: Zod → Provider schema format
-  - `convertTool(tool)`: Universal tool → Provider tool definition
-  - `convertResponse(response)`: Universal response → Provider response
-  - `startServer()`: Initialize provider server
-  - `stopServer()`: Cleanup
-
-### OpenAI Provider (`packages/providers/openai/`)
-
-Uses `@modelcontextprotocol/sdk` (v1.0.6) and `zod-to-json-schema` (v3.24.1).
-
-**Important**: OpenAI uses metadata in tool definitions:
 ```typescript
-{
-  _meta: {
-    "openai/outputTemplate": "ui://widget/weather-card.html",
-    "openai/widgetAccessible": true
+app.tool('calculate', {
+  title: 'Calculator',
+  description: 'Perform arithmetic operations',
+  input: z.object({
+    operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
+    a: z.number().describe('First number'),
+    b: z.number().describe('Second number')
+  }),
+  handler: async ({ operation, a, b }) => {
+    // Types are inferred: operation is 'add' | 'subtract' | ...
+    // a and b are numbers
+
+    let result: number;
+    switch (operation) {
+      case 'add': result = a + b; break;
+      case 'subtract': result = a - b; break;
+      case 'multiply': result = a * b; break;
+      case 'divide':
+        if (b === 0) throw new Error('Division by zero');
+        result = a / b;
+        break;
+    }
+
+    return textResponse(`Result: ${result}`);
+  }
+});
+```
+
+**Step 2:** Schema automatically converts to JSON Schema via adapter
+
+**Step 3:** Test with MCP Inspector or ChatGPT
+
+Reference: [examples/weather-app/src/index.ts](examples/weather-app/src/index.ts)
+
+### Creating a Provider Adapter
+
+**Step 1:** Implement `ProviderAdapter` interface
+
+```typescript
+import { ProviderAdapter } from '@bandofai/unido-provider-base';
+import type { UniversalTool, UniversalResponse } from '@bandofai/unido-core';
+
+export class MyProviderAdapter implements ProviderAdapter {
+  async convertSchema(zodSchema: ZodSchema): Promise<ProviderSchema> {
+    // Convert Zod schema to provider format
+  }
+
+  async convertTool(tool: UniversalTool): Promise<ProviderTool> {
+    // Convert tool definition
+  }
+
+  async convertResponse(response: UniversalResponse): Promise<ProviderResponse> {
+    // Convert response format
+  }
+
+  async startServer(): Promise<void> {
+    // Initialize server/transport
+  }
+
+  async stopServer(): Promise<void> {
+    // Cleanup
   }
 }
 ```
 
-## Common Development Workflows
+**Step 2:** Follow OpenAI adapter structure in [packages/providers/openai/](packages/providers/openai/)
 
-### Adding a New Tool
+**Step 3:** Handle schema conversion (Zod → Provider format)
 
-1. Use `app.tool()` with Zod schema in [examples/weather-app/src/index.ts](examples/weather-app/src/index.ts) as reference
-2. Schema automatically converts to JSON Schema via adapter
-3. Return `UniversalResponse` format (content + optional component)
+**Step 4:** Implement transport layer (HTTP/stdio/WebSocket/etc.)
 
-### Creating a New Provider Adapter
+**Step 5:** Add provider config to `AppConfig.providers` in [types.ts](packages/core/src/types.ts)
 
-1. Implement `ProviderAdapter` interface from `@bandofai/unido-provider-base`
-2. Follow OpenAI adapter structure in [packages/providers/openai/](packages/providers/openai/)
-3. Handle schema conversion (Zod → Provider format)
-4. Implement transport layer (HTTP/stdio/WebSocket)
-5. Add provider config to `AppConfig.providers` in [types.ts](packages/core/src/types.ts)
+**Step 6:** Create factory function
+
+```typescript
+export function myProvider(config: MyProviderConfig): ProviderConfig {
+  return {
+    enabled: true,
+    adapter: new MyProviderAdapter(config)
+  };
+}
+```
 
 ### Adding Components
 
-1. Create React component in [packages/components/src/](packages/components/src/)
-2. Export from [packages/components/src/index.ts](packages/components/src/index.ts)
-3. Register in app with `app.component()`
-4. Bundle will be handled per provider (OpenAI bundles to `ui://` resources)
+**Step 1:** Create React component in [packages/components/src/](packages/components/src/)
 
-Use the shared helper to locate component sources in both `src/` and `dist/` contexts:
+```typescript
+// packages/components/src/MyCard.tsx
+import type { FC } from 'react';
+
+interface MyCardProps {
+  title: string;
+  description: string;
+}
+
+export const MyCard: FC<MyCardProps> = ({ title, description }) => {
+  return (
+    <div className="card">
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
+  );
+};
+```
+
+**Step 2:** Export from [packages/components/src/index.ts](packages/components/src/index.ts)
+
+```typescript
+export { MyCard } from './MyCard.js';
+export type { MyCardProps } from './MyCard.js';
+```
+
+**Step 3:** Register in app with `app.component()`
 
 ```typescript
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+// Helper to locate component source (works in src/ and dist/)
 function resolveComponentPath(relativePath: string): string {
-  const normalized = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath;
-  const distUrl = new URL(normalized.startsWith('components/') ? './' + normalized : './components/' + normalized, import.meta.url);
+  const normalized = relativePath.startsWith('./')
+    ? relativePath.slice(2)
+    : relativePath;
+
+  const distUrl = new URL(
+    normalized.startsWith('components/')
+      ? './' + normalized
+      : './components/' + normalized,
+    import.meta.url
+  );
   const distPath = fileURLToPath(distUrl);
+
   if (existsSync(distPath)) return distPath;
   return fileURLToPath(new URL('../src/' + normalized, import.meta.url));
 }
 
 app.component({
-  type: 'weather-card',
-  sourcePath: resolveComponentPath('components/WeatherCard.tsx'),
-  // ...
+  type: 'my-card',
+  title: 'My Card',
+  description: 'A custom card component',
+  sourcePath: resolveComponentPath('components/MyCard.tsx'),
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true,
+        preferredSize: 'medium'
+      }
+    }
+  }
 });
 ```
 
-## Testing Strategy
+**Step 4:** Use in tool handlers
 
-Run individual package tests:
-```bash
-cd packages/core && pnpm test
+```typescript
+app.tool('get_data', {
+  // ...
+  handler: async (input) => {
+    return componentResponse(
+      'my-card',
+      { title: 'Hello', description: 'World' },
+      'Fallback: Hello World'
+    );
+  }
+});
 ```
 
-Test the example app:
+### Editing CLI Templates
+
+**Step 1:** Edit template definitions in [packages/cli/src/templates.ts](packages/cli/src/templates.ts)
+
+**Step 2:** Rebuild CLI
+
 ```bash
-cd examples/weather-app && pnpm run dev
+cd packages/cli
+pnpm run build
 ```
 
-**Note**: Full test suite is architecture-ready but not yet implemented.
+**Step 3:** Test immediately
 
-## Important Conventions
+```bash
+node dist/index.js test-app --template basic
+cd test-app && pnpm install && pnpm run dev
+```
 
-1. **ES Modules Only**: All packages use `"type": "module"` and `.js` extensions in imports
-2. **Strict TypeScript**: `strict: true`, `noUnusedLocals: true`, `noUncheckedIndexedAccess: true`
-3. **Monorepo Dependencies**: Use `workspace:*` for internal package dependencies
-4. **Build Order**: Turborepo handles dependency builds automatically via `dependsOn: ["^build"]`
+Or use helper script:
 
-## MCP Inspector & Smoke Tests
+```bash
+./scripts/local-test.sh basic test-template-change
+```
 
-- Scaffolded playgrounds (`test-basic-app`, `test-weather-app`) live at the repo root and link to the workspace packages using `link:` dependencies. Regenerate them with:
+---
 
-  ```bash
-  rm -rf test-basic-app && node packages/cli/dist/index.js test-basic-app --template basic --skip-git
-  rm -rf test-weather-app && node packages/cli/dist/index.js test-weather-app --template weather --skip-git
-  # inside each app
-  pnpm install --ignore-workspace
-  ```
+## Testing & Validation
 
-- Install the inspector once per app and run it from the package directory (necessary for pnpm layouts):
+### Local Development Testing
 
-  ```bash
-  pnpm add -D @modelcontextprotocol/inspector
-  cd node_modules/@modelcontextprotocol/inspector/cli
-  node build/index.js http://localhost:3000/sse --transport sse --method tools/list
-  node build/index.js http://localhost:3000/sse --transport sse --method resources/list
-  ```
+#### Method 1: Helper Script (Recommended)
 
-- For scripted verification, rely on the MCP SDK:
+```bash
+./scripts/local-test.sh basic my-test
+cd my-test
+pnpm run dev
+```
 
-  ```bash
-  node --import tsx <<'NODE'
-  import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-  import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+Creates test app with workspace links. Changes to packages reflected immediately.
 
-  const client = new Client({ name: 'smoke-test', version: '0.0.0' });
-  const transport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
-  await client.connect(transport);
-  console.log(await client.listTools());
-  console.log(await client.listResources());
-  await transport.close();
-  NODE
-  ```
+#### Method 2: NPM Scripts
 
-## Next Implementation Priorities
+```bash
+pnpm run test:basic     # Creates test-basic-app
+pnpm run test:weather   # Creates test-weather-app
+```
 
-Based on [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md):
+#### Method 3: Direct CLI Execution
 
-1. **HTTP Server for OpenAI**: Full SSE implementation (currently foundation only)
-2. **Component Bundler**: Automatic React → bundle for OpenAI (esbuild/Vite)
-3. **CLI Tool Enhancements**: Improve `create-unido` with more templates
-4. **More Components**: List, Table, Chart, Form components
-5. **Additional Provider Adapters**: Framework is ready for new provider implementations
+```bash
+node packages/cli/dist/index.js my-app --template basic --skip-git
+cd my-app
+pnpm install --ignore-workspace
+pnpm run dev
+```
+
+### MCP Inspector Testing
+
+**Setup (once per test app):**
+
+```bash
+cd test-app
+pnpm add -D @modelcontextprotocol/inspector
+```
+
+**Run Inspector:**
+
+```bash
+# Start your app first: pnpm run dev
+
+# In another terminal, run from inspector directory (pnpm layout requirement)
+cd node_modules/@modelcontextprotocol/inspector/cli
+node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+```
+
+### Automated Testing with MCP SDK
+
+```bash
+# Start app: pnpm run dev
+
+# Run smoke test
+node --import tsx <<'NODE'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+const client = new Client({ name: 'smoke-test', version: '0.0.0' });
+const transport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
+await client.connect(transport);
+
+console.log('Tools:', await client.listTools());
+console.log('Resources:', await client.listResources());
+
+await transport.close();
+NODE
+```
+
+### Smoke Test Suite
+
+```bash
+./scripts/smoke-test.sh
+```
+
+Runs:
+- ✅ Full build
+- ✅ Template scaffolding (basic + weather)
+- ✅ TypeScript compilation
+- ✅ Server startup
+- ✅ Auto cleanup
+
+### Unit Tests
+
+```bash
+# All packages
+pnpm run test
+
+# Specific package
+cd packages/core && pnpm run test
+```
+
+### Integration Tests
+
+```bash
+# Weather example app
+cd examples/weather-app
+pnpm install
+pnpm run dev
+
+# Test in ChatGPT or with Inspector
+```
+
+---
+
+## Code Conventions
+
+### 1. ES Modules Only
+
+All packages use `"type": "module"` in `package.json`:
+
+```typescript
+// ✅ Correct - .js extension for imports
+import { createApp } from './app.js';
+import type { UniversalTool } from './types.js';
+
+// ❌ Wrong - missing extension
+import { createApp } from './app';
+```
+
+### 2. Strict TypeScript Configuration
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+### 3. Monorepo Dependencies
+
+Internal packages use `workspace:*`:
+
+```json
+{
+  "dependencies": {
+    "@bandofai/unido-core": "workspace:*",
+    "@bandofai/unido-provider-base": "workspace:*"
+  }
+}
+```
+
+### 4. Build Order
+
+Turborepo `turbo.json` configures automatic dependency builds:
+
+```json
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],  // ^ means "dependencies first"
+      "outputs": ["dist/**"]
+    }
+  }
+}
+```
+
+### 5. Code Style
+
+- Use Biome for formatting and linting
+- 2-space indentation
+- Single quotes for strings
+- Trailing commas in multiline structures
+- Explicit return types for public APIs
+
+---
+
+## Common Tasks
+
+### Update Package Versions
+
+```bash
+# Update individual package
+cd packages/core
+npm version patch  # or minor/major
+
+# Update CLI version constant
+# Edit packages/cli/src/index.ts line 19
+
+# Rebuild
+pnpm run build
+```
+
+### Add New Dependency
+
+```bash
+# Add to specific package
+cd packages/core
+pnpm add zod
+
+# Add dev dependency
+pnpm add -D @types/node
+
+# Add to root (dev tools only)
+pnpm add -D -w vitest
+```
+
+### Link CLI Globally
+
+```bash
+pnpm run cli:link      # Link
+pnpm run cli:unlink    # Unlink
+```
+
+### Clean Build Artifacts
+
+```bash
+# All packages
+pnpm run clean
+
+# Specific package
+cd packages/core && pnpm run clean
+```
+
+### Run Linter
+
+```bash
+# Check all packages
+pnpm run lint
+
+# Auto-fix issues
+pnpm run lint:fix
+
+# Format code
+pnpm run format
+```
+
+---
+
+## Troubleshooting
+
+### Build Errors
+
+**Problem:** Package won't build
+
+**Solution:**
+
+```bash
+# Clean and rebuild
+pnpm run clean
+pnpm install
+pnpm run build
+
+# Check for circular dependencies
+pnpm list --depth=0
+```
+
+### TypeScript Errors
+
+**Problem:** Type errors in imports
+
+**Solution:**
+
+1. Check path aliases in `tsconfig.base.json`
+2. Ensure `.js` extensions on all imports
+3. Rebuild dependencies: `pnpm run build`
+
+```bash
+# Validate types
+pnpm run type-check
+```
+
+### CLI Not Updating
+
+**Problem:** CLI changes not reflected
+
+**Solution:**
+
+```bash
+cd packages/cli
+pnpm run build
+
+# If globally linked
+pnpm link --global
+
+# Or use direct execution
+node dist/index.js test-app
+```
+
+### Module Not Found
+
+**Problem:** `Cannot find module '@bandofai/unido-core'`
+
+**Solution:**
+
+```bash
+# Ensure packages are built
+pnpm run build
+
+# Check workspace links
+pnpm list @bandofai/unido-core
+
+# Re-install if needed
+pnpm install
+```
+
+### Port Already in Use
+
+**Problem:** `Error: listen EADDRINUSE: address already in use :::3000`
+
+**Solution:**
+
+```bash
+# Find process using port 3000
+lsof -ti:3000
+
+# Kill it
+kill $(lsof -ti:3000)
+
+# Or change port in your app
+openAI({ port: 3001 })
+```
+
+### Component Not Found
+
+**Problem:** Component not rendering in ChatGPT
+
+**Solution:**
+
+1. Check component is registered: `app.component({ type: 'my-card', ... })`
+2. Verify source path exists: `console.log(resolveComponentPath('...'))`
+3. Check MCP resources: Inspector → `resources/list`
+4. Verify metadata: `"openai/outputTemplate": "ui://widget/my-card.html"`
+
+---
+
+## Additional Resources
+
+### Internal Documentation
+
+- [QUICKSTART.md](QUICKSTART.md) - Daily development workflows
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Comprehensive development guide
+- [README.md](README.md) - User-facing documentation
+- [scripts/README.md](scripts/README.md) - Helper scripts
+- [examples/weather-app/](examples/weather-app/) - Complete example
+
+### External Resources
+
+- [Model Context Protocol Spec](https://modelcontextprotocol.io/) - MCP protocol details
+- [Zod Documentation](https://zod.dev/) - Schema validation library
+- [OpenAI Platform Docs](https://platform.openai.com/) - ChatGPT integration
+- [Turborepo Docs](https://turbo.build/repo) - Monorepo management
+- [pnpm Workspace](https://pnpm.io/workspaces) - Workspace features
+
+---
+
+**Happy coding! If you have questions, check [DEVELOPMENT.md](DEVELOPMENT.md) or ask the maintainers.**
