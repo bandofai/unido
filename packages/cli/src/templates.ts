@@ -643,8 +643,8 @@ async function startTunnel() {
     let url: string | null = null;
     let isShuttingDown = false;
 
-    // Parse stdout for the tunnel URL
-    child.stdout.on('data', (data) => {
+    // Parse both stdout and stderr for the tunnel URL
+    const parseOutput = (data: Buffer) => {
       const output = data.toString();
 
       // Look for the tunnel URL in the output
@@ -659,16 +659,10 @@ async function startTunnel() {
         console.log(\`  2. Add Server: \${url}\\n\`);
         console.log('Press Ctrl+C to stop the tunnel\\n');
       }
-    });
+    };
 
-    // Log errors from stderr
-    child.stderr.on('data', (data) => {
-      const output = data.toString();
-      // Only show actual errors, not info logs
-      if (output.includes('ERR') || output.includes('error')) {
-        console.error('⚠️ ', output);
-      }
-    });
+    child.stdout.on('data', parseOutput);
+    child.stderr.on('data', parseOutput);
 
     // Handle process exit
     child.on('exit', (code) => {
