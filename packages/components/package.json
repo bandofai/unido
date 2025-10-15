@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-components",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Unido Components - Universal UI components for AI applications",
   "type": "module",
   "main": "./dist/index.js",
