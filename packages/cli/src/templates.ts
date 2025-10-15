@@ -29,7 +29,6 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       '@types/node': '^22.10.7',
       '@types/react': '^18.3.18',
       '@types/react-dom': '^18.3.5',
-      cloudflared: '^0.7.1',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
     },
@@ -189,27 +188,32 @@ For local development (testing on your machine only):
 
 To expose your server publicly with HTTPS (for ChatGPT access from anywhere):
 
-1. **Start your server:**
+1. **Install cloudflared (one-time setup):**
+   \`\`\`bash
+   # macOS
+   brew install cloudflare/cloudflare/cloudflared
+
+   # Or download from: https://github.com/cloudflare/cloudflared/releases
+   \`\`\`
+
+2. **Start your server:**
    \`\`\`bash
    npm run dev
    \`\`\`
 
-2. **In a new terminal, start the Cloudflare Tunnel:**
+3. **In a new terminal, start the Cloudflare Tunnel:**
    \`\`\`bash
    npm run tunnel
    \`\`\`
 
-   This will automatically:
-   - Download cloudflared binary (first run only)
-   - Create a secure HTTPS tunnel
-   - Output your public URL like:
+   This will output:
    \`\`\`
    ☁️  Starting Cloudflare Tunnel...
    ✅ Tunnel started successfully!
    📡 Public URL: https://random-name.trycloudflare.com
    \`\`\`
 
-3. **Configure ChatGPT:**
+4. **Configure ChatGPT:**
    - Open ChatGPT → Settings → Custom Tools
    - Add Server with the URL shown (e.g., \`https://random-name.trycloudflare.com\`)
    - Your MCP server is now accessible via HTTPS!
@@ -621,7 +625,7 @@ export default WeatherCard;
 
 export function getTunnelScript(): string {
   return `#!/usr/bin/env node
-import { tunnel } from 'cloudflared';
+import { spawn } from 'node:child_process';
 
 const PORT = process.env.PORT || 3000;
 
@@ -630,54 +634,64 @@ async function startTunnel() {
     console.log('☁️  Starting Cloudflare Tunnel...\\n');
     console.log(\`🔌 Connecting to http://localhost:\${PORT}...\\n\`);
 
-    // Start cloudflared tunnel - it returns the tunnel instance
-    const tunnelInstance = tunnel({
-      '--url': \`http://localhost:\${PORT}\`,
+    // Start cloudflared tunnel using system binary
+    const child = spawn('cloudflared', ['tunnel', '--url', \`http://localhost:\${PORT}\`], {
+      stdio: ['ignore', 'pipe', 'pipe']
     });
 
-    // Wait for the tunnel URL
-    const url = await new Promise((resolve, reject) => {
-      tunnelInstance.once('url', resolve);
-      tunnelInstance.once('error', reject);
-
-      // Timeout after 30 seconds
-      setTimeout(() => reject(new Error('Tunnel startup timeout')), 30000);
-    });
-
-    console.log('✅ Tunnel started successfully!\\n');
-    console.log(\`📡 Public URL: \${url}\`);
-    console.log(\`🔗 Local URL:  http://localhost:\${PORT}\\n\`);
-    console.log('To configure ChatGPT:');
-    console.log(\`  1. Go to Settings → Custom Tools\`);
-    console.log(\`  2. Add Server: \${url}\\n\`);
-    console.log('Press Ctrl+C to stop the tunnel\\n');
-
-    // Optional: Log when connected
-    tunnelInstance.once('connected', (info) => {
-      console.log(\`📊 Connected to Cloudflare edge: \${info.location || 'unknown location'}\`);
-    });
-
-    // Handle shutdown gracefully
+    let url: string | null = null;
     let isShuttingDown = false;
-    const shutdown = async () => {
-      if (isShuttingDown) return;
-      isShuttingDown = true;
-      console.log('\\n\\n👋 Stopping tunnel...');
-      tunnelInstance.stop();
-      // Give it a moment to cleanup
-      setTimeout(() => process.exit(0), 1000);
-    };
 
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
+    // Parse stdout for the tunnel URL
+    child.stdout.on('data', (data) => {
+      const output = data.toString();
 
-    // Handle tunnel exit
-    tunnelInstance.on('exit', (code) => {
+      // Look for the tunnel URL in the output
+      const urlMatch = output.match(/https:\\/\\/[^\\s]+\\.trycloudflare\\.com/);
+      if (urlMatch && !url) {
+        url = urlMatch[0];
+        console.log('✅ Tunnel started successfully!\\n');
+        console.log(\`📡 Public URL: \${url}\`);
+        console.log(\`🔗 Local URL:  http://localhost:\${PORT}\\n\`);
+        console.log('To configure ChatGPT:');
+        console.log(\`  1. Go to Settings → Custom Tools\`);
+        console.log(\`  2. Add Server: \${url}\\n\`);
+        console.log('Press Ctrl+C to stop the tunnel\\n');
+      }
+    });
+
+    // Log errors from stderr
+    child.stderr.on('data', (data) => {
+      const output = data.toString();
+      // Only show actual errors, not info logs
+      if (output.includes('ERR') || output.includes('error')) {
+        console.error('⚠️ ', output);
+      }
+    });
+
+    // Handle process exit
+    child.on('exit', (code) => {
       if (!isShuttingDown) {
         console.error(\`\\n❌ Tunnel process exited unexpectedly with code \${code}\`);
         process.exit(code || 1);
       }
     });
+
+    // Handle shutdown gracefully
+    const shutdown = () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      console.log('\\n\\n👋 Stopping tunnel...');
+      child.kill('SIGTERM');
+      setTimeout(() => {
+        child.kill('SIGKILL');
+        process.exit(0);
+      }, 1000);
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+
   } catch (error: any) {
     console.error('\\n❌ Failed to start tunnel\\n');
 
@@ -688,14 +702,11 @@ async function startTunnel() {
     console.error('Common solutions:');
     console.error(\`  1. Make sure your server is running on port \${PORT}\`);
     console.error('  2. Check your internet connection');
-    console.error('  3. Try restarting the tunnel\\n');
+    console.error('  3. Make sure cloudflared is installed: brew install cloudflare/cloudflare/cloudflared\\n');
 
-    if (error.message?.includes('ECONNREFUSED') || error.message?.includes('connection')) {
-      console.error(\`💡 Connection refused - ensure your app is running on port \${PORT}\\n\`);
-    }
-
-    if (error.message?.includes('timeout')) {
-      console.error('💡 Tunnel startup timed out - check your internet connection\\n');
+    if (error.code === 'ENOENT') {
+      console.error('💡 cloudflared not found. Install it with:');
+      console.error('   brew install cloudflare/cloudflare/cloudflared\\n');
     }
 
     process.exit(1);
