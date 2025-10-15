@@ -661,15 +661,19 @@ async function startTunnel() {
     console.log(\`  2. Add Server: \${url}\\n\`);
     console.log('Press Ctrl+C to stop the tunnel\\n');
 
-    // Keep the process alive
+    // Keep the process alive with SIGINT handler
+    let isShuttingDown = false;
     process.on('SIGINT', async () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
       console.log('\\n\\n👋 Stopping tunnel...');
       await listener.close();
       process.exit(0);
     });
 
-    // Keep process alive
-    await new Promise(() => {});
+    // Keep process alive by waiting on the listener
+    // The ngrok listener keeps the event loop active
+    await listener.join();
   } catch (error: any) {
     console.error('\\n❌ Failed to start tunnel\\n');
 
