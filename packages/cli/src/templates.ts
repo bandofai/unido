@@ -635,7 +635,8 @@ async function startTunnel() {
     console.log(\`🔌 Connecting to http://localhost:\${PORT}...\\n\`);
 
     // Start cloudflared tunnel using system binary
-    const child = spawn('cloudflared', ['tunnel', '--url', \`http://localhost:\${PORT}\`], {
+    // Use --no-autoupdate to skip cert check for quick tunnels
+    const child = spawn('cloudflared', ['tunnel', '--url', \`http://localhost:\${PORT}\`, '--no-autoupdate'], {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
