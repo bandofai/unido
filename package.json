@@ -1,6 +1,6 @@
 {
   "name": "@unido/monorepo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Unido - Provider-agnostic TypeScript framework for AI applications",
   "packageManager": "pnpm@10.17.1",
