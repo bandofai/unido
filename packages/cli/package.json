@@ -1,6 +1,6 @@
 {
   "name": "create-unido",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "CLI tool for scaffolding Unido projects",
   "type": "module",
   "bin": {
@@ -14,7 +14,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -46,5 +48,14 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["unido", "cli", "scaffolding", "ai", "openai", "claude", "mcp", "create-unido"]
+  "keywords": [
+    "unido",
+    "cli",
+    "scaffolding",
+    "ai",
+    "openai",
+    "claude",
+    "mcp",
+    "create-unido"
+  ]
 }

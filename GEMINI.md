@@ -595,8 +595,7 @@ app.tool('calculator', {
 pnpm run dev                    # Start app
 # In another terminal:
 pnpm add -D @modelcontextprotocol/inspector
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/call --params '{"name":"calculator","arguments":{"operation":"add","a":5,"b":3}}'
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/call --params '{"name":"calculator","arguments":{"operation":"add","a":5,"b":3}}'
 ```
 
 ### Adding a Component (Step-by-Step)
@@ -866,20 +865,19 @@ pnpm add -D @modelcontextprotocol/inspector
 **List Tools:**
 
 ```bash
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/list
 ```
 
 **List Resources:**
 
 ```bash
-node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method resources/list
 ```
 
 **Call Tool:**
 
 ```bash
-node build/index.js http://localhost:3000/sse --transport sse --method tools/call --params '{"name":"tool_name","arguments":{"param":"value"}}'
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/call --params '{"name":"tool_name","arguments":{"param":"value"}}'
 ```
 
 ### Automated Testing

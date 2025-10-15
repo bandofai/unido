@@ -1,8 +1,16 @@
 /**
- * Universal Card component
+ * Universal Card component - shadcn/ui wrapper
  */
 
 import type React from 'react';
+import {
+  Card as ShadcnCard,
+  CardHeader as ShadcnCardHeader,
+  CardContent as ShadcnCardContent,
+  CardFooter as ShadcnCardFooter,
+  CardTitle,
+  CardDescription,
+} from './components/ui/card.js';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -25,60 +33,20 @@ export interface CardFooterProps {
 }
 
 export function Card({ children, className = '' }: CardProps) {
-  return (
-    <div
-      className={`unido-card ${className}`}
-      style={{
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.5rem',
-        backgroundColor: 'white',
-        overflow: 'hidden',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <ShadcnCard className={className}>{children}</ShadcnCard>;
 }
 
 Card.Header = function CardHeader({ children, className = '' }: CardHeaderProps) {
-  return (
-    <div
-      className={`unido-card-header ${className}`}
-      style={{
-        padding: '1rem 1.5rem',
-        borderBottom: '1px solid #e5e7eb',
-        fontWeight: 600,
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <ShadcnCardHeader className={className}>{children}</ShadcnCardHeader>;
 };
 
 Card.Body = function CardBody({ children, className = '' }: CardBodyProps) {
-  return (
-    <div
-      className={`unido-card-body ${className}`}
-      style={{
-        padding: '1.5rem',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <ShadcnCardContent className={className}>{children}</ShadcnCardContent>;
 };
 
 Card.Footer = function CardFooter({ children, className = '' }: CardFooterProps) {
-  return (
-    <div
-      className={`unido-card-footer ${className}`}
-      style={{
-        padding: '1rem 1.5rem',
-        borderTop: '1px solid #e5e7eb',
-        backgroundColor: '#f9fafb',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <ShadcnCardFooter className={className}>{children}</ShadcnCardFooter>;
 };
+
+// Re-export additional components
+export { CardTitle, CardDescription };

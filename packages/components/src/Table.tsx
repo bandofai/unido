@@ -1,9 +1,18 @@
 /**
- * Universal Table component
+ * Universal Table component - shadcn/ui wrapper
  * Displays tabular data with optional sorting and actions
  */
 
 import type React from 'react';
+import {
+  Table as ShadcnTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/ui/table.js';
+import { cn } from './lib/utils.js';
 
 export interface TableColumn {
   id: string;
@@ -37,17 +46,7 @@ export function Table({
 }: TableProps) {
   if (data.length === 0) {
     return (
-      <div
-        className={`unido-table-empty ${className}`}
-        style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: '#6b7280',
-          fontStyle: 'italic',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.5rem',
-        }}
-      >
+      <div className={cn('p-8 text-center text-muted-foreground italic border rounded-lg', className)}>
         {emptyMessage}
       </div>
     );
@@ -61,81 +60,43 @@ export function Table({
   };
 
   return (
-    <div className={`unido-table-container ${className}`} style={{ overflowX: 'auto' }}>
-      <table
-        className="unido-table"
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.5rem',
-          overflow: 'hidden',
-        }}
-      >
-        <thead>
-          <tr
-            style={{
-              backgroundColor: '#f9fafb',
-              borderBottom: '2px solid #e5e7eb',
-            }}
+    <ShadcnTable className={className}>
+      <TableHeader>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead
+              key={column.id}
+              className={cn(column.align === 'center' && 'text-center', column.align === 'right' && 'text-right')}
+              style={{ width: column.width }}
+            >
+              {column.header}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((row, rowIndex) => (
+          <TableRow
+            key={row.id}
+            className={cn(
+              striped && rowIndex % 2 === 1 && 'bg-muted/50',
+              !hoverable && 'hover:bg-transparent'
+            )}
           >
             {columns.map((column) => (
-              <th
+              <TableCell
                 key={column.id}
-                style={{
-                  padding: '0.75rem 1rem',
-                  textAlign: column.align || 'left',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: '#374151',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: column.width,
-                }}
+                className={cn(
+                  column.align === 'center' && 'text-center',
+                  column.align === 'right' && 'text-right'
+                )}
               >
-                {column.header}
-              </th>
+                {getCellValue(row, column)}
+              </TableCell>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, rowIndex) => (
-            <tr
-              key={row.id}
-              className="unido-table-row"
-              style={{
-                backgroundColor: striped && rowIndex % 2 === 1 ? '#f9fafb' : 'white',
-                borderBottom: rowIndex < data.length - 1 ? '1px solid #e5e7eb' : 'none',
-                transition: hoverable ? 'background-color 0.2s' : 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (hoverable) {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (hoverable) {
-                  e.currentTarget.style.backgroundColor =
-                    striped && rowIndex % 2 === 1 ? '#f9fafb' : 'white';
-                }
-              }}
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.id}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    textAlign: column.align || 'left',
-                    color: '#111827',
-                  }}
-                >
-                  {getCellValue(row, column)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </TableRow>
+        ))}
+      </TableBody>
+    </ShadcnTable>
   );
 }

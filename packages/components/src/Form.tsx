@@ -1,9 +1,21 @@
 /**
- * Universal Form component
+ * Universal Form component - shadcn/ui wrapper
  * Handles form inputs with validation
  */
 
 import React from 'react';
+import { Button } from './components/ui/button.js';
+import { Input } from './components/ui/input.js';
+import { Label } from './components/ui/label.js';
+import { Textarea } from './components/ui/textarea.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './components/ui/select.js';
+import { cn } from './lib/utils.js';
 
 export interface FormField {
   name: string;
@@ -86,104 +98,70 @@ export function Form({ fields, onSubmit, submitLabel = 'Submit', className = '' 
   const renderField = (field: FormField) => {
     const value = values[field.name] || '';
     const error = errors[field.name];
-    const commonProps = {
-      id: field.name,
-      name: field.name,
-      value,
-      onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-      ) => handleChange(field.name, e.target.value),
-      placeholder: field.placeholder,
-      required: field.required,
-      style: {
-        width: '100%',
-        padding: '0.5rem 0.75rem',
-        border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
-        borderRadius: '0.375rem',
-        fontSize: '0.875rem',
-        outline: 'none',
-        transition: 'border-color 0.2s',
-      },
-    };
 
     if (field.type === 'textarea') {
-      return <textarea {...commonProps} rows={4} />;
+      return (
+        <Textarea
+          id={field.name}
+          name={field.name}
+          value={value}
+          onChange={(e) => handleChange(field.name, e.target.value)}
+          placeholder={field.placeholder}
+          required={field.required}
+          className={cn(error && 'border-destructive')}
+          rows={4}
+        />
+      );
     }
 
     if (field.type === 'select' && field.options) {
       return (
-        <select {...commonProps}>
-          <option value="">Select {field.label}</option>
-          {field.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <Select value={value} onValueChange={(val) => handleChange(field.name, val)}>
+          <SelectTrigger className={cn(error && 'border-destructive')}>
+            <SelectValue placeholder={`Select ${field.label}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options.map((option) => (
+              <SelectItem key={option.value} value={String(option.value)}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     }
 
-    return <input {...commonProps} type={field.type} />;
+    return (
+      <Input
+        id={field.name}
+        name={field.name}
+        type={field.type}
+        value={value}
+        onChange={(e) => handleChange(field.name, e.target.value)}
+        placeholder={field.placeholder}
+        required={field.required}
+        className={cn(error && 'border-destructive')}
+      />
+    );
   };
 
   return (
-    <form className={`unido-form ${className}`} onSubmit={handleSubmit}>
+    <form className={cn('space-y-4', className)} onSubmit={handleSubmit}>
       {fields.map((field) => (
-        <div key={field.name} style={{ marginBottom: '1rem' }}>
-          <label
-            htmlFor={field.name}
-            style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              color: '#374151',
-            }}
-          >
+        <div key={field.name} className="space-y-2">
+          <Label htmlFor={field.name}>
             {field.label}
-            {field.required && <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>}
-          </label>
+            {field.required && <span className="text-destructive ml-1">*</span>}
+          </Label>
           {renderField(field)}
           {errors[field.name] && (
-            <div
-              style={{
-                marginTop: '0.25rem',
-                fontSize: '0.75rem',
-                color: '#ef4444',
-              }}
-            >
-              {errors[field.name]}
-            </div>
+            <p className="text-sm text-destructive">{errors[field.name]}</p>
           )}
         </div>
       ))}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        style={{
-          padding: '0.5rem 1.5rem',
-          backgroundColor: isSubmitting ? '#9ca3af' : '#3b82f6',
-          color: 'white',
-          border: 'none',
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          fontWeight: 500,
-          cursor: isSubmitting ? 'not-allowed' : 'pointer',
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.backgroundColor = '#2563eb';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.backgroundColor = '#3b82f6';
-          }
-        }}
-      >
+      <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Submitting...' : submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

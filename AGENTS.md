@@ -553,9 +553,8 @@ pnpm add -D @modelcontextprotocol/inspector
 # Start app
 pnpm run dev
 
-# Run inspector (from inspector CLI dir)
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+# Run inspector
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/list
 ```
 
 ### Automated Testing

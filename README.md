@@ -87,12 +87,9 @@ pnpm add -D @modelcontextprotocol/inspector
 Start your server (`pnpm run dev` or `pnpm run start`), then from a second terminal run:
 
 ```bash
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/list
-node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method resources/list
 ```
-
-> The inspector package currently expects to run from within its own directory when installed via pnpm. Running the commands above from the `cli` folder ensures the MCP client can resolve its metadata correctly.
 
 Need automation? The MCP SDK ships a lightweight client:
 

@@ -63,8 +63,7 @@ node packages/cli/dist/index.js my-app --template basic
 ```bash
 # In test app directory, while server is running
 pnpm add -D @modelcontextprotocol/inspector
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/list
 ```
 
 ## Common Tasks

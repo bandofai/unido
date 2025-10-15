@@ -3,6 +3,8 @@
  * Displays a list of items with optional actions
  */
 
+import { cn } from './lib/utils.js';
+
 export interface ListItem {
   id: string | number;
   title: string;
@@ -18,79 +20,39 @@ export interface ListProps {
   emptyMessage?: string;
 }
 
-export function List({ items, className = '', onItemClick, emptyMessage = 'No items to display' }: ListProps) {
+export function List({
+  items,
+  className = '',
+  onItemClick,
+  emptyMessage = 'No items to display',
+}: ListProps) {
   if (items.length === 0) {
     return (
-      <div
-        className={`unido-list-empty ${className}`}
-        style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: '#6b7280',
-          fontStyle: 'italic',
-        }}
-      >
+      <div className={cn('p-8 text-center text-muted-foreground italic', className)}>
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className={`unido-list ${className}`}>
+    <div className={cn('divide-y divide-border', className)}>
       {items.map((item) => (
         <div
           key={item.id}
-          className="unido-list-item"
+          className={cn(
+            'py-4 px-6 border-b last:border-b-0 transition-colors',
+            onItemClick && 'cursor-pointer hover:bg-muted/50'
+          )}
           onClick={() => onItemClick?.(item)}
-          style={{
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid #e5e7eb',
-            cursor: onItemClick ? 'pointer' : 'default',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            if (onItemClick) {
-              e.currentTarget.style.backgroundColor = '#f9fafb';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {item.icon && (
-              <div
-                className="unido-list-item-icon"
-                style={{
-                  fontSize: '1.5rem',
-                  flexShrink: 0,
-                }}
-              >
-                {item.icon}
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                className="unido-list-item-title"
-                style={{
-                  fontWeight: 600,
-                  color: '#111827',
-                  marginBottom: item.description ? '0.25rem' : 0,
-                }}
-              >
+          <div className="flex items-center gap-4">
+            {item.icon && <div className="text-2xl flex-shrink-0">{item.icon}</div>}
+            <div className="flex-1 min-w-0">
+              <div className={cn('font-semibold text-foreground', item.description && 'mb-1')}>
                 {item.title}
               </div>
               {item.description && (
-                <div
-                  className="unido-list-item-description"
-                  style={{
-                    fontSize: '0.875rem',
-                    color: '#6b7280',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <div className="text-sm text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                   {item.description}
                 </div>
               )}

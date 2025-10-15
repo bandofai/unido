@@ -622,10 +622,9 @@ pnpm add -D @modelcontextprotocol/inspector
 ```bash
 # Start your app first: pnpm run dev
 
-# In another terminal, run from inspector directory (pnpm layout requirement)
-cd node_modules/@modelcontextprotocol/inspector/cli
-node build/index.js http://localhost:3000/sse --transport sse --method tools/list
-node build/index.js http://localhost:3000/sse --transport sse --method resources/list
+# In another terminal, run the inspector
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method tools/list
+node node_modules/@modelcontextprotocol/inspector/bin/cli.js http://localhost:3000/sse --transport sse --method resources/list
 ```
 
 ### Automated Testing with MCP SDK
