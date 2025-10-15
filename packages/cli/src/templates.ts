@@ -30,7 +30,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       '@types/node': '^22.10.7',
       '@types/react': '^18.3.18',
       '@types/react-dom': '^18.3.5',
-      ngrok: '^5.0.0-beta.2',
+      '@ngrok/ngrok': '^1.5.0',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
     },
@@ -623,7 +623,7 @@ export default WeatherCard;
 
 export function getTunnelScript(): string {
   return `#!/usr/bin/env node
-import ngrok from 'ngrok';
+import ngrok from '@ngrok/ngrok';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -644,15 +644,18 @@ async function startTunnel() {
       process.exit(1);
     }
 
-    const url = await ngrok.connect({
+    console.log('🔌 Connecting to ngrok...\\n');
+
+    // Connect using @ngrok/ngrok
+    const listener = await ngrok.forward({
       addr: PORT,
       authtoken: NGROK_AUTHTOKEN,
     });
 
+    const url = listener.url();
     console.log('✅ Tunnel started successfully!\\n');
     console.log(\`📡 Public URL: \${url}\`);
     console.log(\`🔗 Local URL:  http://localhost:\${PORT}\\n\`);
-    console.log('📊 Web Interface: http://127.0.0.1:4040\\n');
     console.log('To configure ChatGPT:');
     console.log(\`  1. Go to Settings → Custom Tools\`);
     console.log(\`  2. Add Server: \${url}\\n\`);
@@ -661,12 +664,30 @@ async function startTunnel() {
     // Keep the process alive
     process.on('SIGINT', async () => {
       console.log('\\n\\n👋 Stopping tunnel...');
-      await ngrok.disconnect();
-      await ngrok.kill();
+      await listener.close();
       process.exit(0);
     });
-  } catch (error) {
-    console.error('❌ Failed to start tunnel:', error);
+
+    // Keep process alive
+    await new Promise(() => {});
+  } catch (error: any) {
+    console.error('\\n❌ Failed to start tunnel\\n');
+
+    if (error.message) {
+      console.error(\`Error: \${error.message}\\n\`);
+    }
+
+    console.error('Common solutions:');
+    console.error('  1. Make sure your server is running on port', PORT);
+    console.error('  2. Verify your NGROK_AUTHTOKEN is valid');
+    console.error('  3. Check if you have an active ngrok session at https://dashboard.ngrok.com/tunnels/agents');
+    console.error('  4. Update your ngrok package: npm install @ngrok/ngrok@latest\\n');
+
+    if (error.message?.includes('agent version') || error.message?.includes('ERR_NGROK_121')) {
+      console.error('💡 Your ngrok package version is outdated.');
+      console.error('   Run: npm install @ngrok/ngrok@latest\\n');
+    }
+
     process.exit(1);
   }
 }
