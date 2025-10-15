@@ -10,11 +10,13 @@ import chalk from 'chalk';
 import {
   getBasicTemplate,
   getBasicComponentSource,
+  getEnvExample,
   getGitignore,
   getNpmrc,
   getPackageJson,
   getReadme,
   getTsConfig,
+  getTunnelScript,
   getWeatherComponentSource,
   getWeatherTemplate,
 } from './templates.js';
@@ -66,9 +68,10 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   console.log(chalk.gray('  Creating directory...'));
   await mkdir(projectPath, { recursive: true });
 
-  // Create src directory
+  // Create src and scripts directories
   await mkdir(join(projectPath, 'src'));
   await mkdir(join(projectPath, 'src', 'components'));
+  await mkdir(join(projectPath, 'scripts'));
 
   // Write package.json
   console.log(chalk.gray('  Writing package.json...'));
@@ -94,6 +97,16 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   console.log(chalk.gray('  Writing README.md...'));
   const readme = getReadme(projectName);
   await writeFile(join(projectPath, 'README.md'), readme);
+
+  // Write .env.example
+  console.log(chalk.gray('  Writing .env.example...'));
+  const envExample = getEnvExample();
+  await writeFile(join(projectPath, '.env.example'), envExample);
+
+  // Write tunnel script
+  console.log(chalk.gray('  Writing scripts/tunnel.ts...'));
+  const tunnelScript = getTunnelScript();
+  await writeFile(join(projectPath, 'scripts', 'tunnel.ts'), tunnelScript);
 
   // Write main application file based on template
   console.log(chalk.gray(`  Writing ${template} template...`));

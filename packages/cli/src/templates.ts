@@ -15,12 +15,13 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
       inspect: 'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
-      tunnel: 'ngrok http 3000',
+      tunnel: 'node --import tsx scripts/tunnel.ts',
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.4',
       '@bandofai/unido-provider-openai': '^0.1.6',
       '@bandofai/unido-components': '^0.1.6',
+      'dotenv': '^16.4.7',
       'react': '^18.3.1',
       'react-dom': '^18.3.1',
       'zod': '^3.24.1',
@@ -617,5 +618,69 @@ const WeatherCard: FC<WeatherCardProps> = ({
 };
 
 export default WeatherCard;
+`;
+}
+
+export function getTunnelScript(): string {
+  return `#!/usr/bin/env node
+import ngrok from 'ngrok';
+import { config } from 'dotenv';
+
+// Load environment variables
+config();
+
+const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN;
+const PORT = process.env.PORT || '3000';
+
+async function startTunnel() {
+  try {
+    console.log('🚇 Starting ngrok tunnel...\\n');
+
+    if (!NGROK_AUTHTOKEN) {
+      console.error('❌ Error: NGROK_AUTHTOKEN not found in .env file\\n');
+      console.log('Please add your ngrok authtoken to .env:');
+      console.log('  NGROK_AUTHTOKEN=your_token_here\\n');
+      console.log('Get your authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken\\n');
+      process.exit(1);
+    }
+
+    const url = await ngrok.connect({
+      addr: PORT,
+      authtoken: NGROK_AUTHTOKEN,
+    });
+
+    console.log('✅ Tunnel started successfully!\\n');
+    console.log(\`📡 Public URL: \${url}\`);
+    console.log(\`🔗 Local URL:  http://localhost:\${PORT}\\n\`);
+    console.log('📊 Web Interface: http://127.0.0.1:4040\\n');
+    console.log('To configure ChatGPT:');
+    console.log(\`  1. Go to Settings → Custom Tools\`);
+    console.log(\`  2. Add Server: \${url}\\n\`);
+    console.log('Press Ctrl+C to stop the tunnel\\n');
+
+    // Keep the process alive
+    process.on('SIGINT', async () => {
+      console.log('\\n\\n👋 Stopping tunnel...');
+      await ngrok.disconnect();
+      await ngrok.kill();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start tunnel:', error);
+    process.exit(1);
+  }
+}
+
+startTunnel();
+`;
+}
+
+export function getEnvExample(): string {
+  return `# ngrok Configuration
+# Get your authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken
+NGROK_AUTHTOKEN=your_ngrok_authtoken_here
+
+# Server Configuration
+PORT=3000
 `;
 }
