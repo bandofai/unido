@@ -85,6 +85,13 @@ export async function startWidgetServer(options: WidgetServerOptions): Promise<W
       port,
       strictPort: true,
       open,
+      fs: {
+        // Allow serving files from the user's project directory
+        allow: [
+          path.join(import.meta.dirname, '../public'),
+          rootDir,
+        ],
+      },
     },
     logLevel: verbose ? 'info' : 'warn',
     plugins: [

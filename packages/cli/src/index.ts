@@ -16,7 +16,7 @@ const program = new Command();
 program
   .name('create-unido')
   .description('Create a new Unido AI application')
-  .version('0.6.4')
+  .version('0.6.5')
   .argument('[project-name]', 'Name of the project to create')
   .option('-t, --template <template>', 'Template to use (basic, weather)')
   .option('--skip-install', 'Skip npm install')
