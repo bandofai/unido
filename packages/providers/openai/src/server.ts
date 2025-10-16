@@ -51,6 +51,21 @@ export function createHttpServer(
   }
   app.use(express.json({ limit: '4mb' }));
 
+  // Basic root endpoint so health checks against "/" succeed (e.g. tunnels, connectors)
+  app.get('/', (_req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      name: 'unido-openai',
+      protocol: 'mcp',
+      endpoints: {
+        health: '/health',
+        info: '/info',
+        sse: '/sse',
+        messages: '/messages',
+      },
+    });
+  });
+
   // Health check endpoint
   app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
