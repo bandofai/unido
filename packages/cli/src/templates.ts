@@ -17,6 +17,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       'widget:dev': 'node --import tsx src/widget-dev.ts',
       inspect:
         'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
+      tunnel: 'ngrok http 3000',
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.7',
@@ -176,15 +177,35 @@ The inspector works with both development (\`npm run dev\`) and production (\`np
 
 ## OpenAI ChatGPT Setup
 
-### Local Development
+### Local Development (Desktop App)
 
-For local development (testing on your machine only):
+For local development with ChatGPT Desktop App:
 
 1. Make sure your development server is running
 2. Open ChatGPT → Settings → Custom Tools
 3. Click "Add Server"
 4. Enter URL: http://localhost:3000
 5. Start using your tools in ChatGPT!
+
+### Testing with ChatGPT Web (Public Access)
+
+ChatGPT web version cannot access localhost. Use ngrok to create a public tunnel:
+
+\`\`\`bash
+# Terminal 1: Start your app
+npm run dev
+
+# Terminal 2: Create public tunnel
+npm run tunnel
+\`\`\`
+
+ngrok will output a URL like \`https://abc123.ngrok.io\`. Use this in ChatGPT:
+- Add Server URL: \`https://abc123.ngrok.io/sse\`
+
+**Note:** You need ngrok installed. Get it from https://ngrok.com/download or:
+\`\`\`bash
+brew install ngrok  # macOS
+\`\`\`
 
 ## Build
 

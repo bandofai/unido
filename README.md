@@ -72,9 +72,30 @@ Your server is now running on `http://localhost:3000` 🎉
 
 ### 3. Connect to ChatGPT
 
-1. Open ChatGPT → **Settings → Custom Tools → Add Server**
+#### Option A: ChatGPT Desktop App (Local Development)
+
+1. Open ChatGPT Desktop → **Settings → Custom Tools → Add Server**
 2. Enter `http://localhost:3000`
 3. Ask ChatGPT to use your tools!
+
+#### Option B: ChatGPT Web (Public Tunnel)
+
+ChatGPT web version can't access localhost. Use ngrok to create a public tunnel:
+
+```bash
+# Terminal 1: Your app (already running)
+pnpm run dev
+
+# Terminal 2: Create tunnel
+pnpm run tunnel
+```
+
+ngrok will give you a URL like `https://abc123.ngrok.io`. Use this in ChatGPT:
+1. Open ChatGPT Web → **Settings → Custom Tools → Add Server**
+2. Enter `https://abc123.ngrok.io`
+3. Start using your tools!
+
+> **Note:** Install ngrok first: `brew install ngrok` (macOS) or download from [ngrok.com](https://ngrok.com/download)
 
 ### 4. Inspect with MCP tools
 
