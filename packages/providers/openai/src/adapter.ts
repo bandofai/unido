@@ -153,23 +153,32 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     // Set up tool handlers
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: (this.serverConfig?.tools ?? []).map((tool: UniversalTool) => {
-          const converted = this.convertTool(tool);
-          return {
-            name: converted.name,
-            description: converted.description,
-            inputSchema: converted.inputSchema,
-          };
-        }),
-      };
+      this.logger.info('📋 MCP Request: tools/list');
+      const tools = (this.serverConfig?.tools ?? []).map((tool: UniversalTool) => {
+        const converted = this.convertTool(tool);
+        return {
+          name: converted.name,
+          description: converted.description,
+          inputSchema: converted.inputSchema,
+        };
+      });
+      this.logger.info('📋 MCP Response: tools/list', {
+        toolCount: tools.length,
+        toolNames: tools.map(t => t.name)
+      });
+      return { tools };
     });
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      this.logger.info('🔧 MCP Request: tools/call', {
+        toolName: name,
+        arguments: JSON.stringify(args, null, 2)
+      });
 
       const tool = (this.serverConfig?.tools ?? []).find((t: UniversalTool) => t.name === name);
       if (!tool) {
+        this.logger.error('❌ Tool not found', new Error(`Tool not found: ${name}`), { toolName: name });
         throw new Error(`Tool not found: ${name}`);
       }
 
@@ -178,25 +187,35 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       };
 
       const result = await this.handleToolCall(tool, args, context);
+      this.logger.info('🔧 MCP Response: tools/call', {
+        toolName: name,
+        result: JSON.stringify(result, null, 2)
+      });
       return result as any;
     });
 
     // Register resources handler for components
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
-      return {
-        resources: Array.from(this.componentResourcesByUri.values()).map((entry) => entry.resource),
-      };
+      this.logger.info('📦 MCP Request: resources/list');
+      const resources = Array.from(this.componentResourcesByUri.values()).map((entry) => entry.resource);
+      this.logger.info('📦 MCP Response: resources/list', {
+        resourceCount: resources.length,
+        resourceUris: resources.map(r => r.uri)
+      });
+      return { resources };
     });
 
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const uri = request.params.uri;
+      this.logger.info('📄 MCP Request: resources/read', { uri });
       const entry = this.componentResourcesByUri.get(uri);
 
       if (!entry) {
+        this.logger.error('❌ Resource not found', new Error(`Resource not found: ${uri}`), { uri });
         throw new Error(`Resource not found: ${uri}`);
       }
 
-      return {
+      const response = {
         contents: [
           {
             uri,
@@ -205,6 +224,12 @@ export class OpenAIAdapter extends BaseProviderAdapter {
           },
         ],
       };
+      this.logger.info('📄 MCP Response: resources/read', {
+        uri,
+        mimeType: entry.resource.mimeType,
+        htmlLength: entry.html.length
+      });
+      return response;
     });
 
     return server;
@@ -403,6 +428,20 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       record['openai/description'] = metadata.description;
     }
 
+    // Add tool invocation status messages
+    if (metadata.invoking) {
+      record['openai/toolInvocation/invoking'] = metadata.invoking;
+    }
+
+    if (metadata.invoked) {
+      record['openai/toolInvocation/invoked'] = metadata.invoked;
+    }
+
+    // Indicate that the tool result can produce a widget
+    if (typeof metadata.resultCanProduceWidget === 'boolean') {
+      record['openai/resultCanProduceWidget'] = metadata.resultCanProduceWidget;
+    }
+
     if (component?.metadata) {
       for (const [key, value] of Object.entries(component.metadata)) {
         if (key.startsWith('openai/')) {
@@ -452,15 +491,20 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     input: unknown,
     context: ToolContext
   ): Promise<ProviderResponse> {
-    this.logger.debug('Handling tool call', { toolName: tool.name });
+    this.logger.info('📞 Tool call received', {
+      toolName: tool.name,
+      input: JSON.stringify(input, null, 2)
+    });
 
     // Validate input
     const validation = this.validateInput(tool.inputSchema, input);
 
     if (!validation.success) {
-      this.logger.warn('Tool input validation failed', {
+      this.logger.warn('❌ Tool input validation failed', {
         toolName: tool.name,
+        input: JSON.stringify(input, null, 2),
         error: validation.error.message,
+        zodErrors: validation.error.issues
       });
       return {
         content: [
@@ -474,12 +518,29 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     // Execute tool handler
     try {
-      this.logger.trace('Executing tool handler', { toolName: tool.name });
+      this.logger.info('⚙️  Executing tool handler', {
+        toolName: tool.name,
+        validatedInput: JSON.stringify(validation.data, null, 2)
+      });
       const response = await tool.handler(validation.data, context);
-      this.logger.debug('Tool executed successfully', { toolName: tool.name });
-      return this.convertResponse(response, tool);
+      this.logger.info('✅ Tool executed successfully', {
+        toolName: tool.name,
+        responseContent: JSON.stringify(response.content, null, 2),
+        hasComponent: !!response.component,
+        componentType: response.component?.type
+      });
+      const convertedResponse = this.convertResponse(response, tool);
+      this.logger.info('📤 Response converted for ChatGPT', {
+        toolName: tool.name,
+        convertedResponse: JSON.stringify(convertedResponse, null, 2)
+      });
+      return convertedResponse;
     } catch (error) {
-      this.logger.error('Tool execution error', error, { toolName: tool.name });
+      this.logger.error('❌ Tool execution error', error, {
+        toolName: tool.name,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
       return {
         content: [
           {

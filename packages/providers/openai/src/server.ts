@@ -85,8 +85,13 @@ export function createHttpServer(
   });
 
   // SSE endpoint - this is where MCP communication happens
-  app.get('/sse', async (_req: Request, res: Response) => {
-    logger.info('SSE client connected');
+  app.get('/sse', async (req: Request, res: Response) => {
+    const clientInfo = {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      origin: req.get('origin')
+    };
+    logger.info('🔌 ChatGPT SSE client connecting', clientInfo);
     logger.debug('Creating new SSE transport', { endpoint: '/sse' });
     let transport: SSEServerTransport | undefined;
     let mcpServer: Server | undefined;
@@ -100,10 +105,14 @@ export function createHttpServer(
       transport = new SSEServerTransport('/messages', res);
       const sessionKey = transport.sessionId;
       connections.set(sessionKey, { transport, server: mcpServer });
-      logger.debug('SSE transport created', { sessionId: sessionKey, activeConnections: connections.size });
+      logger.info('🔗 SSE transport created', {
+        sessionId: sessionKey,
+        activeConnections: connections.size,
+        ...clientInfo
+      });
 
       transport.onclose = () => {
-        logger.info('SSE client disconnected', { sessionId: sessionKey });
+        logger.info('🔌 ChatGPT SSE client disconnected', { sessionId: sessionKey });
         connections.delete(sessionKey);
         logger.debug('Connection removed', { remainingConnections: connections.size });
 
@@ -120,15 +129,15 @@ export function createHttpServer(
       };
 
       transport.onerror = (error) => {
-        logger.error('SSE transport error', error, { sessionId: sessionKey });
+        logger.error('❌ SSE transport error', error, { sessionId: sessionKey });
       };
 
       // Connect MCP server to transport
       logger.debug('Connecting MCP server to SSE transport', { sessionId: sessionKey });
       await mcpServer.connect(transport);
-      logger.info('MCP server connected successfully', { sessionId: sessionKey });
+      logger.info('✅ MCP server connected successfully to ChatGPT', { sessionId: sessionKey });
     } catch (error) {
-      logger.error('Error connecting SSE transport', error);
+      logger.error('❌ Error connecting SSE transport', error);
       if (transport) {
         connections.delete(transport.sessionId);
         logger.debug('Cleaned up failed connection', { sessionId: transport.sessionId });
@@ -158,7 +167,7 @@ export function createHttpServer(
       const activeSessionId = sessionId ?? headerSessionId;
 
       if (!activeSessionId) {
-        logger.warn('Message received without session identifier');
+        logger.warn('⚠️  Message received without session identifier');
         res.status(400).json({
           error: 'Missing session identifier',
           message: 'Expected sessionId query parameter or mcp-session-id header',
@@ -168,7 +177,7 @@ export function createHttpServer(
 
       const connection = connections.get(activeSessionId);
       if (!connection) {
-        logger.warn('Message received for unknown session', { sessionId: activeSessionId });
+        logger.warn('⚠️  Message received for unknown session', { sessionId: activeSessionId });
         res.status(404).json({
           error: 'Session not found',
           message: `No active SSE session for id ${activeSessionId}`,
@@ -176,11 +185,19 @@ export function createHttpServer(
         return;
       }
 
-      logger.trace('Handling MCP message', { sessionId: activeSessionId, method: req.body?.method });
+      logger.info('📨 Incoming MCP message from ChatGPT', {
+        sessionId: activeSessionId,
+        method: req.body?.method,
+        id: req.body?.id,
+        params: JSON.stringify(req.body?.params, null, 2)
+      });
       await connection.transport.handlePostMessage(req, res, req.body);
-      logger.trace('MCP message handled successfully', { sessionId: activeSessionId });
+      logger.info('✉️  MCP message handled successfully', {
+        sessionId: activeSessionId,
+        method: req.body?.method
+      });
     } catch (error) {
-      logger.error('Error handling message', error);
+      logger.error('❌ Error handling message', error);
       if (!res.headersSent) {
         res.status(500).json({
           error: 'Internal server error',

@@ -84,6 +84,21 @@ export interface OpenAIComponentMetadata {
    * Component description for status display
    */
   description?: string;
+
+  /**
+   * Status message while tool is invoking/loading
+   */
+  invoking?: string;
+
+  /**
+   * Completion message after tool has invoked
+   */
+  invoked?: string;
+
+  /**
+   * Indicates the tool result can produce a widget
+   */
+  resultCanProduceWidget?: boolean;
 }
 
 /**
@@ -93,11 +108,19 @@ export function createOpenAIMetadata(
   component: ComponentDefinition,
   options?: {
     widgetAccessible?: boolean;
+    invoking?: string;
+    invoked?: string;
+    resultCanProduceWidget?: boolean;
   }
 ): OpenAIComponentMetadata {
+  const title = component.title ?? component.type;
+
   return {
     outputTemplate: generateResourceUri(component.type),
     widgetAccessible: options?.widgetAccessible ?? false,
     description: component.description,
+    invoking: options?.invoking ?? `Loading ${title}...`,
+    invoked: options?.invoked ?? `${title} loaded`,
+    resultCanProduceWidget: options?.resultCanProduceWidget ?? true,
   };
 }
