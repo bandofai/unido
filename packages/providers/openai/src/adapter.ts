@@ -39,6 +39,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { z } from 'zod';
 import { type BundledComponent, bundleComponents } from './bundler.js';
+import { type Logger, createLogger } from './logger.js';
 
 // ============================================================================
 // OpenAI Adapter
@@ -73,6 +74,12 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   private componentResourcesByType = new Map<string, ComponentResourceEntry>();
   private watcher?: { close: () => void };
   private watchEnabled = false;
+  private logger: Logger;
+
+  constructor() {
+    super();
+    this.logger = createLogger({ prefix: '[unido:adapter]' });
+  }
 
   // =========================================================================
   // Initialization
@@ -80,6 +87,11 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
   async initialize(config: ServerConfig): Promise<void> {
     await super.initialize(config);
+
+    this.logger.debug('Initializing OpenAI adapter', {
+      name: config.name,
+      version: config.version,
+    });
 
     // Store config for use in factory
     this.serverConfig = config;
@@ -96,15 +108,25 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       this.watchEnabled = providerConfig.watch as boolean;
     }
 
+    this.logger.debug('Configuration loaded', {
+      port: this.port,
+      host: this.host,
+      watchEnabled: this.watchEnabled,
+      componentsCount: config.components?.length ?? 0,
+      toolsCount: config.tools?.length ?? 0,
+    });
+
     await this.prepareComponents(config.components ?? []);
 
     // Start file watching if enabled
     if (this.watchEnabled && config.components && config.components.length > 0) {
+      this.logger.info('File watching enabled', { componentsCount: config.components.length });
       await this.startWatching(config.components);
     }
 
     // Create an initial MCP server instance for validation
     this.mcpServer = this.createMcpServerInstance();
+    this.logger.debug('MCP server instance created for validation');
   }
 
   // =========================================================================
@@ -282,16 +304,19 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     this.componentResourcesByType.clear();
 
     if (!components || components.length === 0) {
+      this.logger.debug('No components to prepare');
       return;
     }
 
+    this.logger.info('Preparing components', { count: components.length });
     const bundles = await bundleComponents(components);
+    this.logger.debug('Components bundled', { successCount: bundles.size });
 
     for (const component of components) {
       const bundled = bundles.get(component.type);
 
       if (!bundled) {
-        console.warn(`⚠️  Skipping component "${component.type}" - bundle not generated.`);
+        this.logger.warn('Skipping component - bundle not generated', { componentType: component.type });
         continue;
       }
 
@@ -311,7 +336,17 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
       this.componentResourcesByUri.set(resource.uri, entry);
       this.componentResourcesByType.set(component.type, entry);
+      this.logger.debug('Component prepared', {
+        type: component.type,
+        uri: resource.uri,
+        bundleSize: bundled.code.length,
+      });
     }
+
+    this.logger.info('Components preparation complete', {
+      total: components.length,
+      registered: this.componentResourcesByType.size,
+    });
   }
 
   private createModuleDataUrl(code: string): string {
@@ -417,10 +452,16 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     input: unknown,
     context: ToolContext
   ): Promise<ProviderResponse> {
+    this.logger.debug('Handling tool call', { toolName: tool.name });
+
     // Validate input
     const validation = this.validateInput(tool.inputSchema, input);
 
     if (!validation.success) {
+      this.logger.warn('Tool input validation failed', {
+        toolName: tool.name,
+        error: validation.error.message,
+      });
       return {
         content: [
           {
@@ -433,9 +474,12 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     // Execute tool handler
     try {
+      this.logger.trace('Executing tool handler', { toolName: tool.name });
       const response = await tool.handler(validation.data, context);
+      this.logger.debug('Tool executed successfully', { toolName: tool.name });
       return this.convertResponse(response, tool);
     } catch (error) {
+      this.logger.error('Tool execution error', error, { toolName: tool.name });
       return {
         content: [
           {
@@ -456,6 +500,11 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       throw new Error('Adapter not initialized. Call initialize() first.');
     }
 
+    this.logger.info('Starting OpenAI MCP server', {
+      host: this.host,
+      port: this.port,
+    });
+
     // Create a factory function that creates a new MCP server for each connection
     const createMcpServer = () => this.createMcpServerInstance();
 
@@ -464,6 +513,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       port: this.port,
       host: this.host,
       cors: true,
+      logger: this.logger.child('server'),
     });
 
     const serverInfo: ProviderServerInfo = {
@@ -489,17 +539,22 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   async stopServer(): Promise<void> {
+    this.logger.info('Stopping OpenAI MCP server');
+
     if (this.httpServer) {
+      this.logger.debug('Closing HTTP server');
       await this.httpServer.close();
       this.httpServer = undefined;
     }
 
     if (this.mcpServer) {
+      this.logger.debug('Closing MCP server');
       await this.mcpServer.close();
       this.mcpServer = undefined;
     }
 
     await super.stopServer();
+    this.logger.info('Server stopped successfully');
   }
 
   // =========================================================================
@@ -513,7 +568,10 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     const chokidar = await import('chokidar');
     const paths = components.map((c) => c.sourcePath);
 
-    console.log(`🔍 Watching ${paths.length} component(s) for changes...`);
+    this.logger.info('Starting file watcher', {
+      componentsCount: paths.length,
+      paths: paths,
+    });
 
     const watcher = chokidar.watch(paths, {
       persistent: true,
@@ -523,12 +581,20 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     watcher.on('change', async (changedPath) => {
       const component = components.find((c) => c.sourcePath === changedPath);
       if (component) {
-        console.log(`\n♻️  Detected change in: ${component.type}`);
+        this.logger.info('Component file changed', {
+          componentType: component.type,
+          path: changedPath,
+        });
         await this.rebundleComponent(component);
       }
     });
 
+    watcher.on('error', (error) => {
+      this.logger.error('File watcher error', error);
+    });
+
     this.watcher = watcher;
+    this.logger.debug('File watcher started successfully');
   }
 
   /**
@@ -536,14 +602,14 @@ export class OpenAIAdapter extends BaseProviderAdapter {
    */
   private async rebundleComponent(component: ComponentDefinition): Promise<void> {
     try {
-      console.log(`📦 Rebundling ${component.type}...`);
+      this.logger.info('Rebundling component', { componentType: component.type });
 
       // Rebundle just this component
       const bundles = await bundleComponents([component]);
       const bundled = bundles.get(component.type);
 
       if (!bundled) {
-        console.error(`❌ Failed to rebundle ${component.type}`);
+        this.logger.error('Failed to rebundle component', undefined, { componentType: component.type });
         return;
       }
 
@@ -565,9 +631,12 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       this.componentResourcesByUri.set(resource.uri, entry);
       this.componentResourcesByType.set(component.type, entry);
 
-      console.log(`✅ ${component.type} rebundled successfully`);
+      this.logger.info('Component rebundled successfully', {
+        componentType: component.type,
+        bundleSize: bundled.code.length,
+      });
     } catch (error) {
-      console.error(`❌ Error rebundling ${component.type}:`, error);
+      this.logger.error('Error rebundling component', error, { componentType: component.type });
     }
   }
 

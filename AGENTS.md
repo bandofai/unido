@@ -36,7 +36,7 @@ This document mirrors the expectations set for Claude Code so all AI assistants 
 | `@bandofai/unido-provider-base` | v0.1.3 | ✅ Production |
 | `@bandofai/unido-components` | v0.1.4 | ✅ Production |
 | `create-unido` | v0.3.3 | ✅ Production |
-| `@unido/dev` | v0.1.0 | ✅ Production |
+| `@bandofai/unido-dev` | v0.1.0 | ✅ Production |
 
 **Key Features:**
 - ✅ HTTP/SSE server implementation (OpenAI)
@@ -250,7 +250,7 @@ packages/
 │   ├── src/templates.ts          # Template definitions
 │   └── src/utils.ts              # Helpers
 │
-└── dev/                           # @unido/dev v0.1.0
+└── dev/                           # @bandofai/unido-dev v0.1.0
     └── src/                       # Development utilities
 ```
 

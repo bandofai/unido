@@ -42,7 +42,7 @@ Production Ready Components:
 │   └── React component library
 ├── create-unido (v0.3.3)
 │   └── CLI scaffolding tool
-└── @unido/dev (v0.1.0)
+└── @bandofai/unido-dev (v0.1.0)
     └── Development utilities
 ```
 
@@ -374,7 +374,7 @@ packages/
 │   │   └── utils.ts              Helpers
 │   └── package.json
 │
-└── dev/                           @unido/dev (v0.1.0)
+└── dev/                           @bandofai/unido-dev (v0.1.0)
     ├── src/                       Development utilities
     └── package.json
 ```

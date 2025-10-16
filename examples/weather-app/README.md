@@ -61,7 +61,7 @@ weather-app/
 The app uses:
 - `@bandofai/unido-core` - Core framework
 - `@bandofai/unido-provider-openai` - OpenAI adapter
-- `@unido/dev` - Dev server with hot reload
+- `@bandofai/unido-dev` - Dev server with hot reload
 
 ## Extensibility
 

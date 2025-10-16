@@ -8,6 +8,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import cors from 'cors';
 import express, { type Application, type Request, type Response } from 'express';
+import { type Logger, createLogger } from './logger.js';
 
 // ============================================================================
 // Types
@@ -17,6 +18,7 @@ export interface ServerOptions {
   port: number;
   host?: string;
   cors?: boolean;
+  logger?: Logger;
 }
 
 export interface OpenAIHttpServer {
@@ -40,7 +42,8 @@ export function createHttpServer(
   createMcpServer: () => Server,
   options: ServerOptions
 ): OpenAIHttpServer {
-  const { port, host = 'localhost', cors: enableCors = true } = options;
+  const { port, host = 'localhost', cors: enableCors = true, logger: providedLogger } = options;
+  const logger = providedLogger || createLogger({ prefix: '[unido:server]' });
   const connections = new Map<string, { transport: SSEServerTransport; server: Server }>();
 
   const app: Application = express();
@@ -83,22 +86,26 @@ export function createHttpServer(
 
   // SSE endpoint - this is where MCP communication happens
   app.get('/sse', async (_req: Request, res: Response) => {
-    console.log('📡 SSE client connected');
+    logger.info('SSE client connected');
+    logger.debug('Creating new SSE transport', { endpoint: '/sse' });
     let transport: SSEServerTransport | undefined;
     let mcpServer: Server | undefined;
 
     try {
       // Create a NEW MCP server instance for this connection
       mcpServer = createMcpServer();
+      logger.debug('MCP server instance created');
 
       // Create SSE transport
       transport = new SSEServerTransport('/messages', res);
       const sessionKey = transport.sessionId;
       connections.set(sessionKey, { transport, server: mcpServer });
+      logger.debug('SSE transport created', { sessionId: sessionKey, activeConnections: connections.size });
 
       transport.onclose = () => {
-        console.log('📡 SSE client disconnected');
+        logger.info('SSE client disconnected', { sessionId: sessionKey });
         connections.delete(sessionKey);
+        logger.debug('Connection removed', { remainingConnections: connections.size });
 
         if (!mcpServer) {
           return;
@@ -108,25 +115,26 @@ export function createHttpServer(
         mcpServer = undefined;
 
         serverToClose.close().catch((err) => {
-          console.error('Error closing MCP server:', err);
+          logger.error('Error closing MCP server', err, { sessionId: sessionKey });
         });
       };
 
       transport.onerror = (error) => {
-        console.error(`❌ SSE transport error for session ${sessionKey}:`, error);
+        logger.error('SSE transport error', error, { sessionId: sessionKey });
       };
 
       // Connect MCP server to transport
-      console.log('🔌 Connecting new MCP server instance to SSE transport...');
+      logger.debug('Connecting MCP server to SSE transport', { sessionId: sessionKey });
       await mcpServer.connect(transport);
-      console.log('✅ MCP server connected to SSE transport');
+      logger.info('MCP server connected successfully', { sessionId: sessionKey });
     } catch (error) {
-      console.error('❌ Error connecting SSE transport:', error);
+      logger.error('Error connecting SSE transport', error);
       if (transport) {
         connections.delete(transport.sessionId);
+        logger.debug('Cleaned up failed connection', { sessionId: transport.sessionId });
       }
       await mcpServer?.close().catch((err) => {
-        console.error('Error closing MCP server:', err);
+        logger.error('Error closing MCP server after failed connection', err);
       });
       if (!res.headersSent) {
         res.status(500).end();
@@ -150,6 +158,7 @@ export function createHttpServer(
       const activeSessionId = sessionId ?? headerSessionId;
 
       if (!activeSessionId) {
+        logger.warn('Message received without session identifier');
         res.status(400).json({
           error: 'Missing session identifier',
           message: 'Expected sessionId query parameter or mcp-session-id header',
@@ -159,6 +168,7 @@ export function createHttpServer(
 
       const connection = connections.get(activeSessionId);
       if (!connection) {
+        logger.warn('Message received for unknown session', { sessionId: activeSessionId });
         res.status(404).json({
           error: 'Session not found',
           message: `No active SSE session for id ${activeSessionId}`,
@@ -166,9 +176,11 @@ export function createHttpServer(
         return;
       }
 
+      logger.trace('Handling MCP message', { sessionId: activeSessionId, method: req.body?.method });
       await connection.transport.handlePostMessage(req, res, req.body);
+      logger.trace('MCP message handled successfully', { sessionId: activeSessionId });
     } catch (error) {
-      console.error('Error handling message:', error);
+      logger.error('Error handling message', error);
       if (!res.headersSent) {
         res.status(500).json({
           error: 'Internal server error',
@@ -187,7 +199,7 @@ export function createHttpServer(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _next: express.NextFunction
     ) => {
-      console.error('Server error:', err);
+      logger.error('Server error', err);
       res.status(500).json({
         error: 'Internal server error',
         message: err.message,
@@ -197,9 +209,15 @@ export function createHttpServer(
 
   // Start HTTP server
   const httpServer = app.listen(port, host, () => {
-    console.log(`✅ OpenAI MCP Server listening on http://${host}:${port}`);
-    console.log(`   SSE endpoint: http://${host}:${port}/sse`);
-    console.log(`   Health check: http://${host}:${port}/health`);
+    logger.info('OpenAI MCP Server started', {
+      url: `http://${host}:${port}`,
+      endpoints: {
+        sse: `http://${host}:${port}/sse`,
+        health: `http://${host}:${port}/health`,
+        info: `http://${host}:${port}/info`,
+      },
+      logLevel: logger.getLevel(),
+    });
   });
 
   return {

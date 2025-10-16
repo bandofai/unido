@@ -35,12 +35,12 @@ importers:
       '@bandofai/unido-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@bandofai/unido-dev':
+        specifier: workspace:*
+        version: link:../../packages/dev
       '@bandofai/unido-provider-openai':
         specifier: workspace:*
         version: link:../../packages/providers/openai
-      '@unido/dev':
-        specifier: workspace:*
-        version: link:../../packages/dev
       zod:
         specifier: ^3.24.1
         version: 3.25.76

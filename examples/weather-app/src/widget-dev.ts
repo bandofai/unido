@@ -3,7 +3,7 @@
  * Run with: pnpm run widget:dev
  */
 
-import { startWidgetServer } from '@unido/dev';
+import { startWidgetServer } from '@bandofai/unido-dev';
 import { app } from './index.js';
 
 async function main() {

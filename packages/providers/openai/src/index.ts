@@ -15,6 +15,7 @@ export {
   type McpResource,
   type OpenAIComponentMetadata,
 } from '@bandofai/unido-provider-openai/resource.js';
+export { createLogger, defaultLogger, type LogLevel, type Logger } from './logger.js';
 
 // ============================================================================
 // Factory Function

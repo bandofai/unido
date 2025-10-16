@@ -1,5 +1,5 @@
 /**
- * @unido/dev
+ * @bandofai/unido-dev
  * Development server and tools for Unido
  */
 
