@@ -386,6 +386,9 @@ process.on('SIGINT', async () => {
   console.log('\\n\\n👋 Shutting down...');
   process.exit(0);
 });
+
+// Export app for widget development
+export { app };
 `;
 }
 
@@ -546,6 +549,9 @@ process.on('SIGINT', async () => {
   console.log('\\n\\n👋 Shutting down...');
   process.exit(0);
 });
+
+// Export app for widget development
+export { app };
 `;
 }
 
