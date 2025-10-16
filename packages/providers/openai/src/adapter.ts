@@ -160,6 +160,9 @@ export class OpenAIAdapter extends BaseProviderAdapter {
           name: converted.name,
           description: converted.description,
           inputSchema: converted.inputSchema,
+          ...(converted.metadata && Object.keys(converted.metadata).length > 0
+            ? { _meta: converted.metadata }
+            : {}),
         };
       });
       this.logger.info('📋 MCP Response: tools/list', {
@@ -253,16 +256,40 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     // Extract OpenAI-specific metadata
     const openaiMetadata = tool.metadata?.openai ?? {};
 
+    // Build metadata object
+    const metadata: Record<string, unknown> = {};
+
+    // Add explicit tool metadata if provided
+    if (openaiMetadata.outputTemplate) {
+      metadata['openai/outputTemplate'] = openaiMetadata.outputTemplate;
+    }
+    if (typeof openaiMetadata.widgetAccessible === 'boolean') {
+      metadata['openai/widgetAccessible'] = openaiMetadata.widgetAccessible;
+    }
+
+    // Spread any additional openai metadata
+    Object.entries(openaiMetadata).forEach(([key, value]) => {
+      if (!key.startsWith('openai/')) {
+        metadata[`openai/${key}`] = value;
+      } else {
+        metadata[key] = value;
+      }
+    });
+
+    // If tool can produce widgets (has registered components), add default metadata
+    if (this.componentResourcesByType.size > 0) {
+      // Signal that this server has widgets available
+      if (!metadata['openai/resultCanProduceWidget']) {
+        metadata['openai/resultCanProduceWidget'] = true;
+      }
+    }
+
     return {
       name: tool.name,
       title: tool.title,
       description: tool.description,
       inputSchema,
-      metadata: {
-        'openai/outputTemplate': openaiMetadata.outputTemplate,
-        'openai/widgetAccessible': openaiMetadata.widgetAccessible,
-        ...openaiMetadata,
-      },
+      metadata,
     };
   }
 
