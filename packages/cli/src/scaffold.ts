@@ -16,7 +16,6 @@ import {
   getPackageJson,
   getReadme,
   getTsConfig,
-  getTunnelScript,
   getWeatherComponentSource,
   getWeatherTemplate,
   getWidgetDevScript,
@@ -103,11 +102,6 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   console.log(chalk.gray('  Writing .env.example...'));
   const envExample = getEnvExample();
   await writeFile(join(projectPath, '.env.example'), envExample);
-
-  // Write tunnel script
-  console.log(chalk.gray('  Writing scripts/tunnel.ts...'));
-  const tunnelScript = getTunnelScript();
-  await writeFile(join(projectPath, 'scripts', 'tunnel.ts'), tunnelScript);
 
   // Write widget dev script
   console.log(chalk.gray('  Writing src/widget-dev.ts...'));
