@@ -14,16 +14,19 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       dev: 'node --import tsx src/index.ts',
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
-      inspect: 'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
+      'widget:dev': 'node --import tsx src/widget-dev.ts',
+      inspect:
+        'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
       tunnel: 'node --import tsx scripts/tunnel.ts',
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.4',
-      '@bandofai/unido-provider-openai': '^0.1.6',
+      '@bandofai/unido-provider-openai': '^0.1.7',
       '@bandofai/unido-components': '^0.2.1',
-      'react': '^18.3.1',
+      '@bandofai/unido-dev': '^0.1.1',
+      react: '^18.3.1',
       'react-dom': '^18.3.1',
-      'zod': '^3.24.1',
+      zod: '^3.24.1',
     },
     devDependencies: {
       '@types/node': '^22.10.7',
@@ -722,5 +725,40 @@ startTunnel();
 export function getEnvExample(): string {
   return `# Server Configuration
 PORT=3000
+`;
+}
+
+export function getWidgetDevScript(): string {
+  return `/**
+ * Widget development server
+ * Run with: pnpm run widget:dev
+ */
+
+import { startWidgetServer } from '@bandofai/unido-dev';
+import { app } from './index.js';
+
+async function main() {
+  console.log('🎨 Starting widget development server...\\n');
+
+  const server = await startWidgetServer({
+    components: app.getComponents(),
+    port: 5173,
+    open: true,
+    verbose: true,
+  });
+
+  console.log(\`✅ Widget preview running at \${server.url}\\n\`);
+  console.log('Features:');
+  console.log('  🔥 Hot Module Replacement (HMR)');
+  console.log('  🎯 Interactive prop editor');
+  console.log('  🖼️  Gallery view for all components');
+  console.log('  ⚠️  Error boundaries with helpful messages\\n');
+  console.log('Press Ctrl+C to stop\\n');
+}
+
+main().catch((error) => {
+  console.error('Failed to start widget server:', error);
+  process.exit(1);
+});
 `;
 }

@@ -13,10 +13,7 @@
     },
     "./globals.css": "./dist/globals.css"
   },
-  "files": [
-    "dist",
-    "src/globals.css"
-  ],
+  "files": ["dist", "src/globals.css"],
   "scripts": {
     "build": "tsc && pnpm run build:css",
     "build:css": "tailwindcss -i ./src/globals.css -o ./dist/globals.css --minify",
@@ -64,11 +61,5 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": [
-    "unido",
-    "components",
-    "ui",
-    "react",
-    "ai"
-  ]
+  "keywords": ["unido", "components", "ui", "react", "ai"]
 }

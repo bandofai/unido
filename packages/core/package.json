@@ -32,9 +32,7 @@
       "import": "./dist/types.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -56,15 +54,7 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": [
-    "unido",
-    "ai",
-    "openai",
-    "chatgpt",
-    "framework",
-    "tools",
-    "mcp"
-  ],
+  "keywords": ["unido", "ai", "openai", "chatgpt", "framework", "tools", "mcp"],
   "dependencies": {
     "zod": "^3.24.1"
   },

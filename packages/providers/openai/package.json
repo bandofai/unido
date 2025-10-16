@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-provider-openai",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Unido OpenAI - Provider adapter for OpenAI ChatGPT",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,9 +28,7 @@
       "import": "./dist/server.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -52,14 +50,7 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": [
-    "unido",
-    "openai",
-    "chatgpt",
-    "provider",
-    "mcp",
-    "ai"
-  ],
+  "keywords": ["unido", "openai", "chatgpt", "provider", "mcp", "ai"],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.6",
     "@types/cors": "^2.8.19",
@@ -69,6 +60,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "esbuild": "^0.25.0",
+    "chokidar": "^4.0.3",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
   },

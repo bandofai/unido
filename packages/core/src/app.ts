@@ -3,10 +3,10 @@
  * Provider-agnostic application builder
  */
 
-import type { ComponentDefinition } from '@bandofai/unido-core/types.js';
 import { ComponentRegistry } from '@bandofai/unido-core/component.js';
 import type { ToolDefinition } from '@bandofai/unido-core/tool.js';
 import { ToolRegistry, createTool } from '@bandofai/unido-core/tool.js';
+import type { ComponentDefinition } from '@bandofai/unido-core/types.js';
 import type {
   ProviderConfig,
   ProviderName,

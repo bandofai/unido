@@ -2,11 +2,11 @@
  * Bundles registered components for delivery to OpenAI widgets.
  */
 
-import { build } from 'esbuild';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { promises as fs } from 'node:fs';
 import type { ComponentDefinition } from '@bandofai/unido-core';
+import { build } from 'esbuild';
 
 export interface BundledComponent {
   type: string;
@@ -96,8 +96,7 @@ async function assertFileExists(filePath: string, componentType: string): Promis
   } catch {
     const fileUrl = pathToFileURL(filePath).href;
     throw new Error(
-      `Component "${componentType}" source not found at ${filePath} (${fileUrl}). ` +
-        'Ensure the path is correct when calling app.component().'
+      `Component "${componentType}" source not found at ${filePath} (${fileUrl}). Ensure the path is correct when calling app.component().`
     );
   }
 }

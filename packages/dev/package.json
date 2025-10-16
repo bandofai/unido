@@ -1,7 +1,7 @@
 {
-  "name": "@unido/dev",
-  "version": "0.1.0",
-  "description": "Unido Dev - Development server and tools",
+  "name": "@bandofai/unido-dev",
+  "version": "0.1.1",
+  "description": "Unido Dev - Development server and tools for widget development",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -12,7 +12,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "public"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -21,11 +21,22 @@
   },
   "dependencies": {
     "@bandofai/unido-core": "workspace:*",
-    "@bandofai/unido-provider-base": "workspace:*"
+    "@bandofai/unido-provider-base": "workspace:*",
+    "vite": "^6.0.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "chokidar": "^4.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

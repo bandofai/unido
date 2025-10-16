@@ -107,11 +107,9 @@ export function createHttpServer(
         const serverToClose = mcpServer;
         mcpServer = undefined;
 
-        serverToClose
-          .close()
-          .catch((err) => {
-            console.error('Error closing MCP server:', err);
-          });
+        serverToClose.close().catch((err) => {
+          console.error('Error closing MCP server:', err);
+        });
       };
 
       transport.onerror = (error) => {

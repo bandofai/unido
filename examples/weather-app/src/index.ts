@@ -43,7 +43,7 @@ async function fetchWeather(city: string, units: 'celsius' | 'fahrenheit'): Prom
 // Create Unido App
 // ============================================================================
 
-const app = createApp({
+export const app = createApp({
   name: 'weather-app',
   version: '1.0.0',
   providers: {

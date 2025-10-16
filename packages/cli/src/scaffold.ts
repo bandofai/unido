@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import chalk from 'chalk';
 import {
-  getBasicTemplate,
   getBasicComponentSource,
+  getBasicTemplate,
   getEnvExample,
   getGitignore,
   getNpmrc,
@@ -19,6 +19,7 @@ import {
   getTunnelScript,
   getWeatherComponentSource,
   getWeatherTemplate,
+  getWidgetDevScript,
 } from './templates.js';
 
 const execAsync = promisify(exec);
@@ -108,6 +109,11 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   const tunnelScript = getTunnelScript();
   await writeFile(join(projectPath, 'scripts', 'tunnel.ts'), tunnelScript);
 
+  // Write widget dev script
+  console.log(chalk.gray('  Writing src/widget-dev.ts...'));
+  const widgetDevScript = getWidgetDevScript();
+  await writeFile(join(projectPath, 'src', 'widget-dev.ts'), widgetDevScript);
+
   // Write main application file based on template
   console.log(chalk.gray(`  Writing ${template} template...`));
   let appCode: string;
@@ -171,7 +177,9 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
       console.log(chalk.green('\n  ✅ Dependencies installed successfully!\n'));
     } catch (error) {
-      console.log(chalk.yellow('\n  ⚠️  Installation failed. Please run the following command manually:\n'));
+      console.log(
+        chalk.yellow('\n  ⚠️  Installation failed. Please run the following command manually:\n')
+      );
       const suggestedCommand =
         packageManager === 'pnpm'
           ? `cd ${projectName} && pnpm install --ignore-workspace`

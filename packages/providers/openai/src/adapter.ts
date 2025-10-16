@@ -3,16 +3,9 @@
  * Implements MCP server for OpenAI ChatGPT
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 import type {
-  ComponentReference,
   ComponentDefinition,
+  ComponentReference,
   ProviderCapabilities,
   ServerConfig,
   ToolContext,
@@ -32,13 +25,20 @@ import {
   type OpenAIComponentMetadata,
   createComponentResource,
   createOpenAIMetadata,
-  generateResourceUri,
   generateComponentHtml,
+  generateResourceUri,
 } from '@bandofai/unido-provider-openai/resource.js';
 import { zodToJsonSchema } from '@bandofai/unido-provider-openai/schema.js';
 import { type OpenAIHttpServer, createHttpServer } from '@bandofai/unido-provider-openai/server.js';
-import { bundleComponents, type BundledComponent } from './bundler.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import {
+  CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import type { z } from 'zod';
+import { type BundledComponent, bundleComponents } from './bundler.js';
 
 // ============================================================================
 // OpenAI Adapter
@@ -71,6 +71,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   private host = 'localhost';
   private componentResourcesByUri = new Map<string, ComponentResourceEntry>();
   private componentResourcesByType = new Map<string, ComponentResourceEntry>();
+  private watcher?: { close: () => void };
+  private watchEnabled = false;
 
   // =========================================================================
   // Initialization
@@ -90,8 +92,16 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     if (providerConfig?.host) {
       this.host = providerConfig.host as string;
     }
+    if (providerConfig?.watch) {
+      this.watchEnabled = providerConfig.watch as boolean;
+    }
 
     await this.prepareComponents(config.components ?? []);
+
+    // Start file watching if enabled
+    if (this.watchEnabled && config.components && config.components.length > 0) {
+      await this.startWatching(config.components);
+    }
 
     // Create an initial MCP server instance for validation
     this.mcpServer = this.createMcpServerInstance();
@@ -152,9 +162,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     // Register resources handler for components
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
       return {
-        resources: Array.from(this.componentResourcesByUri.values()).map(
-          (entry) => entry.resource
-        ),
+        resources: Array.from(this.componentResourcesByUri.values()).map((entry) => entry.resource),
       };
     });
 
@@ -330,8 +338,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     if (entry) {
       return {
         ...entry.metadata,
-        widgetAccessible:
-          widgetAccessibleOverride ?? entry.metadata.widgetAccessible ?? false,
+        widgetAccessible: widgetAccessibleOverride ?? entry.metadata.widgetAccessible ?? false,
       };
     }
 
@@ -382,9 +389,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     return typeof widgetAccessible === 'boolean' ? widgetAccessible : undefined;
   }
 
-  private extractWidgetAccessibleFromReference(
-    component: ComponentReference
-  ): boolean | undefined {
+  private extractWidgetAccessibleFromReference(component: ComponentReference): boolean | undefined {
     if (!component.metadata) {
       return undefined;
     }
@@ -393,7 +398,9 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       return (component.metadata as Record<string, unknown>).widgetAccessible as boolean;
     }
 
-    const openaiMetadata = (component.metadata as Record<string, unknown>)['openai/widgetAccessible'];
+    const openaiMetadata = (component.metadata as Record<string, unknown>)[
+      'openai/widgetAccessible'
+    ];
     if (typeof openaiMetadata === 'boolean') {
       return openaiMetadata;
     }
@@ -496,11 +503,84 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   // =========================================================================
+  // Component Watching
+  // =========================================================================
+
+  /**
+   * Start watching component files for changes
+   */
+  private async startWatching(components: ComponentDefinition[]): Promise<void> {
+    const chokidar = await import('chokidar');
+    const paths = components.map((c) => c.sourcePath);
+
+    console.log(`🔍 Watching ${paths.length} component(s) for changes...`);
+
+    const watcher = chokidar.watch(paths, {
+      persistent: true,
+      ignoreInitial: true,
+    });
+
+    watcher.on('change', async (changedPath) => {
+      const component = components.find((c) => c.sourcePath === changedPath);
+      if (component) {
+        console.log(`\n♻️  Detected change in: ${component.type}`);
+        await this.rebundleComponent(component);
+      }
+    });
+
+    this.watcher = watcher;
+  }
+
+  /**
+   * Rebundle a single component and update resources
+   */
+  private async rebundleComponent(component: ComponentDefinition): Promise<void> {
+    try {
+      console.log(`📦 Rebundling ${component.type}...`);
+
+      // Rebundle just this component
+      const bundles = await bundleComponents([component]);
+      const bundled = bundles.get(component.type);
+
+      if (!bundled) {
+        console.error(`❌ Failed to rebundle ${component.type}`);
+        return;
+      }
+
+      // Update resources
+      const dataUrl = this.createModuleDataUrl(bundled.code);
+      const html = generateComponentHtml(dataUrl, component.type);
+      const resource = createComponentResource(component, dataUrl);
+      const metadata = this.createComponentOpenAIMetadata(component);
+
+      const entry: ComponentResourceEntry = {
+        definition: component,
+        bundle: bundled,
+        resource,
+        metadata,
+        html,
+        dataUrl,
+      };
+
+      this.componentResourcesByUri.set(resource.uri, entry);
+      this.componentResourcesByType.set(component.type, entry);
+
+      console.log(`✅ ${component.type} rebundled successfully`);
+    } catch (error) {
+      console.error(`❌ Error rebundling ${component.type}:`, error);
+    }
+  }
+
+  // =========================================================================
   // Cleanup
   // =========================================================================
 
   async cleanup(): Promise<void> {
     await this.stopServer();
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = undefined;
+    }
     this.componentResourcesByUri.clear();
     this.componentResourcesByType.clear();
     await super.cleanup();

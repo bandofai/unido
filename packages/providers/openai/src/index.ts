@@ -45,6 +45,11 @@ export interface OpenAIProviderOptions {
   cors?: boolean;
 
   /**
+   * Enable file watching for component auto-reload (default: false)
+   */
+  watch?: boolean;
+
+  /**
    * Additional provider-specific options
    */
   [key: string]: unknown;

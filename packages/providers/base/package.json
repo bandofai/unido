@@ -16,9 +16,7 @@
       "import": "./dist/adapter.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -40,13 +38,7 @@
   "homepage": "https://github.com/bandofai/unido#readme",
   "author": "Tomas Kavka <iam@tomaskavka.cz>",
   "license": "MIT",
-  "keywords": [
-    "unido",
-    "ai",
-    "provider",
-    "adapter",
-    "base"
-  ],
+  "keywords": ["unido", "ai", "provider", "adapter", "base"],
   "dependencies": {
     "@bandofai/unido-core": "workspace:^0.1.3",
     "zod": "^3.24.1"
