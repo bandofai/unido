@@ -20,7 +20,7 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
     dependencies: {
       '@bandofai/unido-core': '^0.1.4',
       '@bandofai/unido-provider-openai': '^0.1.6',
-      '@bandofai/unido-components': '^0.1.6',
+      '@bandofai/unido-components': '^0.2.1',
       'react': '^18.3.1',
       'react-dom': '^18.3.1',
       'zod': '^3.24.1',
@@ -551,7 +551,7 @@ process.on('SIGINT', async () => {
 // Use getBasicTemplate() or getWeatherTemplate() instead.
 
 export function getBasicComponentSource(): string {
-  return `import { Card } from '@bandofai/unido-components';
+  return `import { Card, CardContent, CardHeader, CardTitle } from '@bandofai/unido-components';
 import type { FC } from 'react';
 
 export interface GreetingCardProps {
@@ -561,12 +561,12 @@ export interface GreetingCardProps {
 
 const GreetingCard: FC<GreetingCardProps> = ({ name, greeting }) => (
   <Card>
-    <Card.Header>
-      <h2 style={{ margin: 0 }}>{greeting}</h2>
-    </Card.Header>
-    <Card.Body>
-      <p style={{ margin: 0 }}>Nice to meet you, {name}!</p>
-    </Card.Body>
+    <CardHeader>
+      <CardTitle>{greeting}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-muted-foreground">Nice to meet you, {name}!</p>
+    </CardContent>
   </Card>
 );
 
@@ -575,7 +575,14 @@ export default GreetingCard;
 }
 
 export function getWeatherComponentSource(): string {
-  return `import { Card } from '@bandofai/unido-components';
+  return `import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@bandofai/unido-components';
 import type { FC } from 'react';
 
 export interface WeatherCardProps {
@@ -599,22 +606,22 @@ const WeatherCard: FC<WeatherCardProps> = ({
 
   return (
     <Card>
-      <Card.Header>
-        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>{city}</h2>
-        <p style={{ margin: 0, color: '#6b7280' }}>
+      <CardHeader>
+        <CardTitle className="text-xl">{city}</CardTitle>
+        <CardDescription>
           Updated {new Date(updatedAt).toLocaleTimeString()}
-        </p>
-      </Card.Header>
-      <Card.Body>
-        <div style={{ fontSize: '2.5rem', fontWeight: 600 }}>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-4xl font-semibold">
           {Math.round(temperature)}
           {unitLabel}
         </div>
-        <p style={{ margin: '0.5rem 0 0', color: '#4b5563' }}>{condition}</p>
-      </Card.Body>
-      <Card.Footer>
-        <span style={{ color: '#4b5563' }}>Humidity: {Math.round(humidity)}%</span>
-      </Card.Footer>
+        <p className="mt-2 text-muted-foreground">{condition}</p>
+      </CardContent>
+      <CardFooter>
+        <span className="text-muted-foreground">Humidity: {Math.round(humidity)}%</span>
+      </CardFooter>
     </Card>
   );
 };
