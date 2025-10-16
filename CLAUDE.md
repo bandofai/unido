@@ -86,6 +86,21 @@ cd packages/core && pnpm run build   # Build specific package
 - [README.md](README.md) - User-facing documentation
 - [scripts/README.md](scripts/README.md) - Helper scripts guide
 
+### Provider-Specific Documentation
+
+**OpenAI Apps SDK Integration:**
+- [docs/providers/openai/OPENAI_APPS_SDK.md](docs/providers/openai/OPENAI_APPS_SDK.md) - Complete OpenAI integration guide
+  - Unido ↔ OpenAI concept mapping
+  - Metadata reference
+  - Widget system deep dive
+  - Context7 integration guide
+- [docs/providers/openai/examples/basic-widget.md](docs/providers/openai/examples/basic-widget.md) - Simple read-only widget
+- [docs/providers/openai/examples/interactive-widget.md](docs/providers/openai/examples/interactive-widget.md) - Interactive widget with callTool
+- [docs/providers/openai/examples/multi-component.md](docs/providers/openai/examples/multi-component.md) - Multiple components pattern
+- [docs/providers/openai/troubleshooting.md](docs/providers/openai/troubleshooting.md) - Common issues and solutions
+
+**For AI Assistants:** When working with OpenAI-specific features, always check the provider docs first. They include Context7 integration for up-to-date OpenAI Apps SDK specifications.
+
 ### Monorepo Structure
 
 This is a **pnpm workspace** managed by **Turborepo**:
