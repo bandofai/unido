@@ -46,12 +46,65 @@ export async function bundleComponents(
     nodePaths.add(path.join(resolvedRoot, 'node_modules'));
     nodePaths.add(path.join(process.cwd(), 'node_modules'));
 
+    // Create a temporary entry file that initializes React
+    const entryContent = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import Component from ${JSON.stringify(absolutePath)};
+
+type ComponentProps = Record<string, unknown>;
+
+// TypeScript declarations for OpenAI Apps SDK
+declare global {
+  interface Window {
+    openai?: {
+      toolInput?: unknown;
+      toolOutput?: ComponentProps;
+      toolResponseMetadata?: Record<string, unknown>;
+      widgetState?: Record<string, unknown>;
+      setWidgetState?: (state: Record<string, unknown>) => void;
+      callTool?: (name: string, args: unknown) => Promise<unknown>;
+    };
+  }
+}
+
+// Get props from window.openai.toolOutput (structured content from MCP tool response)
+const getProps = (): ComponentProps => {
+  if (typeof window !== 'undefined' && window.openai?.toolOutput) {
+    return window.openai.toolOutput;
+  }
+  return {};
+};
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = createRoot(rootElement);
+
+  const render = (nextProps: ComponentProps) => {
+    root.render(React.createElement(Component, nextProps));
+  };
+
+  // Initial render
+  render(getProps());
+
+  // Listen for OpenAI globals updates
+  window.addEventListener('openai:set_globals', () => {
+    render(getProps());
+  });
+}
+`;
+
+    const tmpDir = path.join(rootDir, 'node_modules', '.unido-temp');
+    await fs.mkdir(tmpDir, { recursive: true });
+    const entryPath = path.join(tmpDir, `${component.type}-entry.tsx`);
+    await fs.writeFile(entryPath, entryContent, 'utf8');
+
     const bundle = await build({
-      entryPoints: [absolutePath],
+      entryPoints: [entryPath],
       bundle: true,
       write: false,
       platform: 'browser',
-      format: 'esm',
+      format: 'iife',
       target: ['es2020'],
       jsx: 'automatic',
       sourcemap: false,
@@ -70,6 +123,9 @@ export async function bundleComponents(
       absWorkingDir: rootDir,
       nodePaths: Array.from(nodePaths),
     });
+
+    // Clean up temp file
+    await fs.unlink(entryPath).catch(() => {});
 
     const output = bundle.outputFiles?.[0];
     if (!output) {

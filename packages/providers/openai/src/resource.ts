@@ -58,10 +58,19 @@ export function generateComponentHtml(bundleUrl: string, componentType: string):
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${componentType}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    #root { width: 100%; height: 100vh; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="${bundleUrl}"></script>
+  ${
+    bundleUrl.startsWith('data:')
+      ? `<script>${atob(bundleUrl.split(',')[1] || '')}</script>`
+      : `<script src="${bundleUrl}"></script>`
+  }
 </body>
 </html>`;
 }

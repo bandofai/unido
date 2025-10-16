@@ -167,7 +167,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       });
       this.logger.info('📋 MCP Response: tools/list', {
         toolCount: tools.length,
-        toolNames: tools.map(t => t.name)
+        toolNames: tools.map(t => t.name),
+        fullTools: JSON.stringify(tools, null, 2)
       });
       return { tools };
     });
@@ -276,11 +277,33 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       }
     });
 
-    // If tool can produce widgets (has registered components), add default metadata
+    // If tool can produce widgets (has registered components), add widget metadata
     if (this.componentResourcesByType.size > 0) {
       // Signal that this server has widgets available
       if (!metadata['openai/resultCanProduceWidget']) {
         metadata['openai/resultCanProduceWidget'] = true;
+      }
+
+      // If there's only one component registered, assume this tool uses it
+      // This is a common pattern for simple apps
+      if (this.componentResourcesByType.size === 1) {
+        const componentEntry = Array.from(this.componentResourcesByType.values())[0];
+        if (!componentEntry) return { name: tool.name, title: tool.title, description: tool.description, inputSchema, metadata };
+        const componentMetadata = componentEntry.metadata;
+
+        // Add component metadata to tool definition
+        if (!metadata['openai/outputTemplate']) {
+          metadata['openai/outputTemplate'] = componentMetadata.outputTemplate;
+        }
+        if (!metadata['openai/widgetAccessible'] && typeof componentMetadata.widgetAccessible === 'boolean') {
+          metadata['openai/widgetAccessible'] = componentMetadata.widgetAccessible;
+        }
+        if (!metadata['openai/toolInvocation/invoking'] && componentMetadata.invoking) {
+          metadata['openai/toolInvocation/invoking'] = componentMetadata.invoking;
+        }
+        if (!metadata['openai/toolInvocation/invoked'] && componentMetadata.invoked) {
+          metadata['openai/toolInvocation/invoked'] = componentMetadata.invoked;
+        }
       }
     }
 
@@ -329,11 +352,17 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     // Add component metadata if present
     const metadata: Record<string, unknown> = {};
+    let structuredContent: Record<string, unknown> | undefined;
 
     if (response.component) {
       const componentMeta = this.convertComponent(response.component);
       const metaRecord = this.buildComponentMetaRecord(componentMeta, response.component);
       Object.assign(metadata, metaRecord);
+
+      // Add structured content with component props for ChatGPT
+      if (response.component.props) {
+        structuredContent = response.component.props;
+      }
     }
 
     // Merge with any existing metadata
@@ -343,6 +372,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     return {
       content,
+      ...(structuredContent ? { structuredContent } : {}),
       ...(Object.keys(metadata).length > 0 ? { _meta: metadata } : {}),
     };
   }
