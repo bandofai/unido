@@ -14,8 +14,10 @@ export {
   componentResponse,
   mixedResponse,
   errorResponse,
+  loadingResponse,
+  errorComponentResponse,
 } from '@bandofai/unido-core/tool.js';
-export type { ToolDefinition } from '@bandofai/unido-core/tool.js';
+export type { ToolDefinition, ComponentResponseOptions } from '@bandofai/unido-core/tool.js';
 
 // Schema system
 export { createSchema, validateInput, getProviderSchema } from '@bandofai/unido-core/schema.js';

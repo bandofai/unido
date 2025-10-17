@@ -6,6 +6,7 @@
 
 **The universal framework for building AI applications that work across ChatGPT and future AI platforms.**
 
+[![CI](https://github.com/bandofai/unido/workflows/CI/badge.svg)](https://github.com/bandofai/unido/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/create-unido?label=create-unido)](https://www.npmjs.com/package/create-unido)
 [![npm version](https://img.shields.io/npm/v/@bandofai/unido-core?label=@bandofai/unido-core)](https://www.npmjs.com/package/@bandofai/unido-core)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)

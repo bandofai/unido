@@ -151,6 +151,38 @@ export interface ComponentReference {
    * Provider-specific metadata
    */
   metadata?: Record<string, unknown>;
+
+  /**
+   * Optional loading state configuration
+   */
+  loadingState?: {
+    /**
+     * Component type to show during loading
+     * @default 'loading-spinner'
+     */
+    component?: string;
+
+    /**
+     * Props for the loading component
+     */
+    props?: Record<string, unknown>;
+  };
+
+  /**
+   * Optional error state configuration
+   */
+  errorState?: {
+    /**
+     * Component type to show on error
+     * @default 'error-card'
+     */
+    component?: string;
+
+    /**
+     * Props for the error component
+     */
+    props?: Record<string, unknown>;
+  };
 }
 
 // ============================================================================

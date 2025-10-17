@@ -97,13 +97,38 @@ export function textResponse(text: string): UniversalResponse {
   };
 }
 
+export interface ComponentResponseOptions {
+  /**
+   * Loading component type
+   * @default 'loading-spinner'
+   */
+  loadingComponent?: string;
+
+  /**
+   * Props for the loading component
+   */
+  loadingProps?: Record<string, unknown>;
+
+  /**
+   * Error component type
+   * @default 'error-card'
+   */
+  errorComponent?: string;
+
+  /**
+   * Props for the error component
+   */
+  errorProps?: Record<string, unknown>;
+}
+
 /**
  * Create a response with a component
  */
 export function componentResponse(
   componentType: string,
   props: Record<string, unknown>,
-  textFallback?: string
+  textFallback?: string,
+  options?: ComponentResponseOptions
 ): UniversalResponse {
   const content = textFallback ? [{ type: 'text' as const, text: textFallback }] : [];
 
@@ -112,6 +137,18 @@ export function componentResponse(
     component: {
       type: componentType,
       props,
+      loadingState: options?.loadingComponent
+        ? {
+            component: options.loadingComponent,
+            props: options.loadingProps,
+          }
+        : undefined,
+      errorState: options?.errorComponent
+        ? {
+            component: options.errorComponent,
+            props: options.errorProps,
+          }
+        : undefined,
     },
   };
 }
@@ -144,6 +181,79 @@ export function errorResponse(code: string, message: string, data?: unknown): Un
         error: { code, message, data },
       },
     ],
+  };
+}
+
+/**
+ * Create a loading response
+ *
+ * @example
+ * ```typescript
+ * // Simple loading spinner
+ * return loadingResponse();
+ *
+ * // Loading with message
+ * return loadingResponse('loading-spinner', { message: 'Fetching weather data...' });
+ *
+ * // Custom loading component
+ * return loadingResponse('weather-card-loading', { city: 'Portland' });
+ * ```
+ */
+export function loadingResponse(
+  componentType = 'loading-spinner',
+  props?: Record<string, unknown>
+): UniversalResponse {
+  return {
+    content: [{ type: 'text', text: 'Loading...' }],
+    component: {
+      type: componentType,
+      props,
+    },
+  };
+}
+
+/**
+ * Create an error response with component
+ *
+ * @example
+ * ```typescript
+ * // Basic error
+ * return errorComponentResponse('Failed to fetch weather data');
+ *
+ * // Error with details
+ * return errorComponentResponse(
+ *   'Network Error',
+ *   'Could not connect to weather service',
+ *   'ERR_NETWORK'
+ * );
+ *
+ * // Custom error component
+ * return errorComponentResponse(
+ *   'Failed to load',
+ *   'weather-card-error',
+ *   { city: 'Portland', error: 'API timeout' }
+ * );
+ * ```
+ */
+export function errorComponentResponse(
+  message: string,
+  componentType = 'error-card',
+  props?: Record<string, unknown>
+): UniversalResponse {
+  return {
+    content: [
+      {
+        type: 'error',
+        error: { code: 'ERROR', message },
+      },
+    ],
+    component: {
+      type: componentType,
+      props: {
+        message,
+        ...props,
+      },
+    },
   };
 }
 

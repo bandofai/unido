@@ -4,7 +4,13 @@
  */
 
 import { fileURLToPath } from 'node:url';
-import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
+import {
+  componentResponse,
+  createApp,
+  errorComponentResponse,
+  loadingResponse,
+  textResponse,
+} from '@bandofai/unido-core';
 import { openAI } from '@bandofai/unido-provider-openai';
 import { z } from 'zod';
 import type { WeatherCardProps } from './components/WeatherCard.js';
@@ -57,6 +63,12 @@ export const app = createApp({
 // ============================================================================
 
 const weatherCardPath = fileURLToPath(new URL('./components/WeatherCard.tsx', import.meta.url));
+const weatherCardLoadingPath = fileURLToPath(
+  new URL('./components/WeatherCardLoading.tsx', import.meta.url)
+);
+const weatherCardErrorPath = fileURLToPath(
+  new URL('./components/WeatherCardError.tsx', import.meta.url)
+);
 
 app.component({
   type: 'weather-card',
@@ -70,6 +82,58 @@ app.component({
       },
     },
   },
+});
+
+app.component({
+  type: 'weather-card-loading',
+  title: 'Weather Card Loading',
+  description: 'Loading state for weather card.',
+  sourcePath: weatherCardLoadingPath,
+});
+
+app.component({
+  type: 'weather-card-error',
+  title: 'Weather Card Error',
+  description: 'Error state for weather card.',
+  sourcePath: weatherCardErrorPath,
+});
+
+// Generic loading and error components from @bandofai/unido-components
+// These are automatically available as fallbacks
+app.component({
+  type: 'loading-spinner',
+  title: 'Loading Spinner',
+  description: 'Generic loading spinner component.',
+  sourcePath: fileURLToPath(
+    new URL(
+      '../../node_modules/@bandofai/unido-components/dist/components/ui/loading-spinner.js',
+      import.meta.url
+    )
+  ),
+});
+
+app.component({
+  type: 'loading-skeleton',
+  title: 'Loading Skeleton',
+  description: 'Generic loading skeleton component.',
+  sourcePath: fileURLToPath(
+    new URL(
+      '../../node_modules/@bandofai/unido-components/dist/components/ui/loading-skeleton.js',
+      import.meta.url
+    )
+  ),
+});
+
+app.component({
+  type: 'error-card',
+  title: 'Error Card',
+  description: 'Generic error card component.',
+  sourcePath: fileURLToPath(
+    new URL(
+      '../../node_modules/@bandofai/unido-components/dist/components/ui/error-card.js',
+      import.meta.url
+    )
+  ),
 });
 
 // ============================================================================
@@ -124,6 +188,104 @@ app.tool('search_cities', {
     ].filter((city) => city.toLowerCase().includes(query.toLowerCase()));
 
     return textResponse(`Found ${cities.length} cities matching "${query}":\n${cities.join(', ')}`);
+  },
+});
+
+// ============================================================================
+// Loading and Error State Examples
+// ============================================================================
+
+app.tool('get_weather_with_states', {
+  title: 'Get Weather (with Loading/Error States)',
+  description:
+    'Demonstrates custom loading and error components. Simulates async data fetching.',
+  input: z.object({
+    city: z.string().describe('City name'),
+    units: z.enum(['celsius', 'fahrenheit']).default('celsius').describe('Temperature units'),
+    simulateError: z
+      .boolean()
+      .optional()
+      .describe('Simulate an error to test error state'),
+  }),
+  handler: async ({ city, units, simulateError }) => {
+    const resolvedUnits = units ?? 'celsius';
+
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Simulate error if requested
+    if (simulateError) {
+      return errorComponentResponse(
+        `Failed to fetch weather data for ${city}`,
+        'weather-card-error',
+        {
+          city,
+          error: 'The weather service is currently unavailable',
+          code: 'ERR_SERVICE_UNAVAILABLE',
+          details: 'Connection timeout after 30 seconds',
+        }
+      );
+    }
+
+    const data = await fetchWeather(city, resolvedUnits);
+
+    const cardProps: WeatherCardProps = {
+      city: data.city,
+      temperature: data.temperature,
+      condition: data.condition,
+      humidity: data.humidity,
+      units: resolvedUnits,
+      updatedAt: data.updatedAt,
+    };
+
+    return componentResponse(
+      'weather-card',
+      cardProps as unknown as Record<string, unknown>,
+      `Weather in ${city}: ${Math.round(data.temperature)}°${resolvedUnits === 'celsius' ? 'C' : 'F'}, ${data.condition}`,
+      {
+        // Specify custom loading component
+        loadingComponent: 'weather-card-loading',
+        loadingProps: { city, message: 'Fetching latest weather data...' },
+        // Specify custom error component
+        errorComponent: 'weather-card-error',
+        errorProps: { city },
+      }
+    );
+  },
+});
+
+app.tool('test_loading_state', {
+  title: 'Test Loading State',
+  description: 'Returns a loading spinner to test loading UI',
+  input: z.object({
+    message: z
+      .string()
+      .optional()
+      .describe('Optional loading message'),
+  }),
+  handler: async ({ message }) => {
+    return loadingResponse('loading-spinner', {
+      message: message || 'Loading...',
+      size: 'lg',
+    });
+  },
+});
+
+app.tool('test_error_state', {
+  title: 'Test Error State',
+  description: 'Returns an error card to test error UI',
+  input: z.object({
+    errorMessage: z.string().describe('Error message to display'),
+    code: z
+      .string()
+      .optional()
+      .describe('Error code'),
+  }),
+  handler: async ({ errorMessage, code }) => {
+    return errorComponentResponse(errorMessage, 'error-card', {
+      code,
+      title: 'Test Error',
+    });
   },
 });
 

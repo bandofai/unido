@@ -50,5 +50,15 @@ export {
   SelectScrollDownButton,
 } from './components/ui/select.js';
 
+// Loading and Error components
+export { LoadingSpinner } from './components/ui/loading-spinner.js';
+export type { LoadingSpinnerProps } from './components/ui/loading-spinner.js';
+
+export { LoadingSkeleton } from './components/ui/loading-skeleton.js';
+export type { LoadingSkeletonProps } from './components/ui/loading-skeleton.js';
+
+export { ErrorCard } from './components/ui/error-card.js';
+export type { ErrorCardProps } from './components/ui/error-card.js';
+
 // Utilities
 export { cn } from './lib/utils.js';
