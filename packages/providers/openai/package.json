@@ -70,7 +70,7 @@
     "express": "^5.1.0",
     "esbuild": "^0.25.0",
     "chokidar": "^4.0.3",
-    "zod": "^3.24.1",
+    "zod": "^4.1.12",
     "zod-to-json-schema": "^3.24.1"
   },
   "peerDependencies": {
