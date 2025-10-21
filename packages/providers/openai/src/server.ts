@@ -11,6 +11,54 @@ import express, { type Application, type Request, type Response } from 'express'
 import { type Logger, createLogger } from './logger.js';
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Build CSP directive string from configuration
+ */
+function buildCSPDirectives(csp: NonNullable<ServerOptions['csp']>): string | null {
+  const level = csp.level || 'trusted';
+
+  // Base directives for each level
+  const baseDirectives: Record<string, string[]> = level === 'untrusted'
+    ? {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'strict-dynamic'"],
+        'style-src': ["'self'"],
+        'img-src': ["'self'", 'data:', 'https:'],
+        'connect-src': ["'self'"],
+        'font-src': ["'self'"],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'frame-ancestors': ["'none'"],
+      }
+    : {
+        'default-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'data:', 'blob:'],
+        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'https:'],
+        'connect-src': ["'self'"],
+        'font-src': ["'self'", 'data:'],
+        'object-src': ["'none'"],
+      };
+
+  // Merge with custom directives
+  const directives = { ...baseDirectives, ...csp.directives };
+
+  // Build CSP string
+  const parts: string[] = [];
+  for (const [directive, values] of Object.entries(directives)) {
+    if (values && values.length > 0) {
+      parts.push(`${directive} ${values.join(' ')}`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join('; ') : null;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -19,6 +67,21 @@ export interface ServerOptions {
   host?: string;
   cors?: boolean;
   logger?: Logger;
+  /**
+   * Content Security Policy configuration for HTTP headers
+   * Provides defense-in-depth security for served resources
+   * @default undefined (no CSP headers)
+   */
+  csp?: {
+    /**
+     * Security level: 'trusted' for development, 'untrusted' for production
+     */
+    level?: 'trusted' | 'untrusted';
+    /**
+     * Custom CSP directives
+     */
+    directives?: Record<string, string[]>;
+  };
 }
 
 export interface OpenAIHttpServer {
@@ -42,7 +105,7 @@ export function createHttpServer(
   createMcpServer: () => Server,
   options: ServerOptions
 ): OpenAIHttpServer {
-  const { port, host = 'localhost', cors: enableCors = true, logger: providedLogger } = options;
+  const { port, host = 'localhost', cors: enableCors = true, logger: providedLogger, csp } = options;
   const logger = providedLogger || createLogger({ prefix: '[unido:server]' });
   const connections = new Map<string, { transport: SSEServerTransport; server: Server }>();
 
@@ -53,6 +116,17 @@ export function createHttpServer(
     app.use(cors());
   }
   app.use(express.json({ limit: '4mb' }));
+
+  // CSP middleware (defense in depth)
+  if (csp) {
+    app.use((_req: Request, res: Response, next: express.NextFunction) => {
+      const cspDirectives = buildCSPDirectives(csp);
+      if (cspDirectives) {
+        res.setHeader('Content-Security-Policy', cspDirectives);
+      }
+      next();
+    });
+  }
 
   // Basic root endpoint so health checks against "/" succeed (e.g. tunnels, connectors)
   app.get('/', (_req: Request, res: Response) => {

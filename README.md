@@ -357,6 +357,40 @@ openAI({
 })
 ```
 
+### Widget Preview & Development Tools
+
+**New in v0.1.6**: Interactive widget preview with full ChatGPT environment emulation!
+
+The `@bandofai/unido-dev` package provides a comprehensive development environment for building and testing widgets:
+
+**Two Rendering Modes:**
+- **Direct Load**: Fast React component rendering for rapid iteration
+- **MCP Load**: Full ChatGPT environment emulation for integration testing
+
+**Features:**
+- 🔌 MCP client with auto-reconnection
+- 🎨 Interactive widget preview
+- 🛠️ Tool call testing panel
+- 📊 Real-time logging with filtering
+- 📈 Performance monitoring
+- 🌐 Complete `window.openai` API emulation
+
+**Quick Start:**
+
+```bash
+# Start your Unido app
+pnpm run dev
+
+# In another terminal, start the widget preview
+cd packages/dev
+pnpm run dev
+```
+
+**Documentation:**
+- **[Widget Preview Guide](docs/development/WIDGET_PREVIEW.md)** - Complete usage guide
+- **[Troubleshooting](docs/development/WIDGET_PREVIEW_TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Dev Package README](packages/dev/README.md)** - API reference
+
 ---
 
 ## 🏗️ Examples

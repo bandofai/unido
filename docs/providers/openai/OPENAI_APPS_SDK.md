@@ -513,14 +513,23 @@ export const WeatherCard: FC = () => {
 
 ### window.openai API Reference
 
+**Quick Reference** (Common Properties):
+
 | Property/Method | Type | Description |
 |---|---|---|
 | `window.openai.toolInput` | `unknown` | Input parameters passed to the tool |
 | `window.openai.toolOutput` | `unknown` | structuredContent from tool response (your props) |
-| `window.openai.callTool(name, args)` | `Promise<void>` | Trigger server-side tool (requires widgetAccessible: true) |
-| `window.openai.displayMode` | `'fullscreen' \| 'sidebar'` | Current display mode in ChatGPT |
+| `window.openai.widgetState` | `Record<string, unknown>` | Persisted state from prior renders |
+| `window.openai.setWidgetState(state)` | `Promise<void>` | Persist state back to host |
+| `window.openai.callTool(name, args)` | `Promise<{ result }>` | Trigger server-side tool (requires widgetAccessible: true) |
+| `window.openai.displayMode` | `'inline' \| 'pip' \| 'fullscreen'` | Current display mode in ChatGPT |
+| `window.openai.maxHeight` | `number` | Maximum height constraint (pixels) |
+| `window.openai.theme` | `'light' \| 'dark'` | Current theme |
+| `window.openai.locale` | `string` | User's locale (BCP 47) |
 
-> 📚 **For detailed Skybridge protocol specs**: Query Context7 with `/websites/developers_openai_apps-sdk` and topic "window.openai component bridge"
+> 📚 **Complete API Documentation**: See [WINDOW_OPENAI_API.md](./WINDOW_OPENAI_API.md) for full reference with 14 API members, usage patterns, React hooks, and edge cases.
+>
+> 📊 **Implementation Status**: See [WINDOW_OPENAI_COMPARISON.md](./WINDOW_OPENAI_COMPARISON.md) for gap analysis and roadmap.
 
 ---
 
@@ -751,13 +760,21 @@ When a developer asks about OpenAI Apps SDK features:
 
 ### Unido-Specific Documentation
 
+**Core Documentation**:
 - **Main README**: [../../README.md](../../README.md)
 - **Development Guide**: [../../DEVELOPMENT.md](../../DEVELOPMENT.md)
 - **Examples**: [../../examples/weather-app/](../../examples/weather-app/)
-- **Basic Widget Example**: [examples/basic-widget.md](examples/basic-widget.md)
-- **Interactive Widget Example**: [examples/interactive-widget.md](examples/interactive-widget.md)
-- **Multi-Component Example**: [examples/multi-component.md](examples/multi-component.md)
-- **Troubleshooting**: [troubleshooting.md](troubleshooting.md)
+
+**OpenAI Provider Documentation**:
+- **window.openai API Reference**: [WINDOW_OPENAI_API.md](./WINDOW_OPENAI_API.md) - Complete API specification
+- **Implementation Comparison**: [WINDOW_OPENAI_COMPARISON.md](./WINDOW_OPENAI_COMPARISON.md) - Gap analysis & roadmap
+- **Research Summary**: [WINDOW_OPENAI_SUMMARY.md](./WINDOW_OPENAI_SUMMARY.md) - Executive summary
+- **Troubleshooting**: [troubleshooting.md](troubleshooting.md) - Common issues & solutions
+
+**Widget Examples**:
+- **Basic Widget**: [examples/basic-widget.md](examples/basic-widget.md)
+- **Interactive Widget**: [examples/interactive-widget.md](examples/interactive-widget.md)
+- **Multi-Component**: [examples/multi-component.md](examples/multi-component.md)
 
 ---
 

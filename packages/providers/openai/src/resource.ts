@@ -47,11 +47,21 @@ export function createComponentResource(
  * Generate HTML template for component resource
  *
  * This creates the HTML that loads the component bundle in an iframe.
+ * Note: CSP meta tag is injected by the iframe renderer, not here.
  *
  * @param bundleUrl - URL to the component JavaScript bundle
  * @param componentType - Component type for initialization
+ * @param options - Optional configuration
+ * @param options.nonce - CSP nonce for inline scripts (optional, for untrusted widgets)
  */
-export function generateComponentHtml(bundleUrl: string, componentType: string): string {
+export function generateComponentHtml(
+  bundleUrl: string,
+  componentType: string,
+  options?: { nonce?: string }
+): string {
+  const nonce = options?.nonce;
+  const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -68,8 +78,8 @@ export function generateComponentHtml(bundleUrl: string, componentType: string):
   <div id="root"></div>
   ${
     bundleUrl.startsWith('data:')
-      ? `<script>${atob(bundleUrl.split(',')[1] || '')}</script>`
-      : `<script src="${bundleUrl}"></script>`
+      ? `<script${nonceAttr}>${atob(bundleUrl.split(',')[1] || '')}</script>`
+      : `<script src="${bundleUrl}"${nonceAttr}></script>`
   }
 </body>
 </html>`;

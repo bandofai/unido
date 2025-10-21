@@ -7,6 +7,12 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from './error-boundary.js';
 import { PropEditor } from './prop-editor.js';
+import { McpWidgetClient } from '../../src/mcp-client.js';
+import { WidgetIframeRenderer } from '../../src/components/WidgetIframeRenderer.js';
+import { McpStatus } from '../../src/components/McpStatus.js';
+import { ToolCallPanel } from '../../src/components/ToolCallPanel.js';
+import { LogPanel } from '../../src/components/LogPanel.js';
+import type { LogEntry } from '../../src/components/LogPanel.js';
 
 interface ComponentInfo {
   type: string;
@@ -15,12 +21,71 @@ interface ComponentInfo {
   sourcePath: string;
 }
 
+type LoadMode = 'direct' | 'mcp';
+
+const STORAGE_KEY = 'unido:preview:loadMode';
+
 const App = () => {
   const [selectedComponent, setSelectedComponent] = useState<ComponentInfo | null>(
     componentData[0] || null
   );
   const [props, setProps] = useState<Record<string, any>>({});
   const [viewMode, setViewMode] = useState<'single' | 'gallery'>('single');
+
+  // MCP mode state
+  const [loadMode, setLoadMode] = useState<LoadMode>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return (saved === 'mcp' || saved === 'direct') ? saved : 'direct';
+  });
+  const [mcpClient] = useState(() => new McpWidgetClient({
+    serverUrl: 'http://localhost:3000',
+    autoReconnect: true,
+    maxReconnectAttempts: 5,
+  }));
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  // Persist load mode preference
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, loadMode);
+  }, [loadMode]);
+
+  // Connect MCP client when in MCP mode
+  useEffect(() => {
+    if (loadMode === 'mcp' && !mcpClient.isConnected()) {
+      mcpClient.connect().catch((error) => {
+        addLog('error', 'Failed to connect to MCP server', error);
+      });
+    }
+
+    return () => {
+      if (mcpClient.isConnected()) {
+        mcpClient.disconnect();
+      }
+    };
+  }, [loadMode, mcpClient]);
+
+  // Add log entry
+  const addLog = (level: LogEntry['level'], message: string, data?: unknown) => {
+    const entry: LogEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: Date.now(),
+      level,
+      message,
+      data,
+    };
+    setLogs((prev) => [...prev, entry]);
+  };
+
+  // Handle MCP reconnect
+  const handleReconnect = async () => {
+    try {
+      addLog('info', 'Reconnecting to MCP server...');
+      await mcpClient.connect();
+      addLog('info', 'Successfully reconnected to MCP server');
+    } catch (error) {
+      addLog('error', 'Reconnection failed', error);
+    }
+  };
 
   // Dynamically import component
   const loadComponent = (sourcePath: string) => {
@@ -38,28 +103,64 @@ const App = () => {
         <div style={styles.headerContent}>
           <h1 style={styles.title}>🎨 Unido Widget Preview</h1>
           <div style={styles.controls}>
-            <button
-              type="button"
-              style={{
-                ...styles.button,
-                ...(viewMode === 'single' ? styles.buttonActive : {}),
-              }}
-              onClick={() => setViewMode('single')}
-            >
-              Single
-            </button>
-            <button
-              type="button"
-              style={{
-                ...styles.button,
-                ...(viewMode === 'gallery' ? styles.buttonActive : {}),
-              }}
-              onClick={() => setViewMode('gallery')}
-            >
-              Gallery
-            </button>
+            {/* Load Mode Toggle */}
+            <div style={styles.controlGroup}>
+              <span style={styles.controlLabel}>Load Mode:</span>
+              <button
+                type="button"
+                style={{
+                  ...styles.button,
+                  ...(loadMode === 'direct' ? styles.buttonActive : {}),
+                }}
+                onClick={() => setLoadMode('direct')}
+              >
+                Direct Load
+              </button>
+              <button
+                type="button"
+                style={{
+                  ...styles.button,
+                  ...(loadMode === 'mcp' ? styles.buttonActive : {}),
+                }}
+                onClick={() => setLoadMode('mcp')}
+              >
+                MCP Load
+              </button>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div style={styles.controlGroup}>
+              <span style={styles.controlLabel}>View:</span>
+              <button
+                type="button"
+                style={{
+                  ...styles.button,
+                  ...(viewMode === 'single' ? styles.buttonActive : {}),
+                }}
+                onClick={() => setViewMode('single')}
+              >
+                Single
+              </button>
+              <button
+                type="button"
+                style={{
+                  ...styles.button,
+                  ...(viewMode === 'gallery' ? styles.buttonActive : {}),
+                }}
+                onClick={() => setViewMode('gallery')}
+              >
+                Gallery
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* MCP Status Bar */}
+        {loadMode === 'mcp' && (
+          <div style={styles.statusBar}>
+            <McpStatus client={mcpClient} onReconnect={handleReconnect} />
+          </div>
+        )}
       </header>
 
       <div style={styles.main}>
@@ -104,15 +205,54 @@ const App = () => {
 
               {/* Preview */}
               <div style={styles.preview}>
-                <div style={styles.previewLabel}>Preview</div>
+                <div style={styles.previewLabel}>
+                  Preview {loadMode === 'mcp' ? '(MCP Mode)' : '(Direct Mode)'}
+                </div>
                 <div style={styles.previewFrame}>
                   <ErrorBoundary>
-                    <Suspense fallback={<div style={styles.loading}>Loading...</div>}>
-                      {React.createElement(loadComponent(selectedComponent.sourcePath), props)}
-                    </Suspense>
+                    {loadMode === 'direct' ? (
+                      <Suspense fallback={<div style={styles.loading}>Loading...</div>}>
+                        {React.createElement(loadComponent(selectedComponent.sourcePath), props)}
+                      </Suspense>
+                    ) : (
+                      <WidgetIframeRenderer
+                        mcpClient={mcpClient}
+                        widgetType={selectedComponent.type}
+                        toolOutput={props}
+                        displayMode="inline"
+                        theme="light"
+                        onError={(error) => addLog('error', 'Widget error', error)}
+                        onLoad={() => addLog('info', `Widget ${selectedComponent.type} loaded`)}
+                        onPerformanceMetric={(metric) => addLog('debug', 'Performance', metric)}
+                      />
+                    )}
                   </ErrorBoundary>
                 </div>
               </div>
+
+              {/* MCP Tools Panel */}
+              {loadMode === 'mcp' && (
+                <div style={styles.mcpPanel}>
+                  <ToolCallPanel
+                    client={mcpClient}
+                    onToolCall={(name, args, result) => {
+                      addLog('info', `Tool call: ${name}`, { args, result });
+                    }}
+                    onError={(error) => addLog('error', 'Tool call error', error)}
+                  />
+                </div>
+              )}
+
+              {/* Logs Panel */}
+              {loadMode === 'mcp' && (
+                <div style={styles.logsPanel}>
+                  <LogPanel
+                    logs={logs}
+                    onClear={() => setLogs([])}
+                    maxLogs={200}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -162,7 +302,18 @@ const styles = {
   },
   controls: {
     display: 'flex',
+    gap: '24px',
+    alignItems: 'center',
+  },
+  controlGroup: {
+    display: 'flex',
     gap: '8px',
+    alignItems: 'center',
+  },
+  controlLabel: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#666',
   },
   button: {
     padding: '8px 16px',
@@ -177,6 +328,11 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  statusBar: {
+    marginTop: '12px',
+    paddingTop: '12px',
+    borderTop: '1px solid #e5e5e5',
   },
   main: {
     display: 'flex',
@@ -304,6 +460,13 @@ const styles = {
   loading: {
     color: '#999',
     fontSize: '14px',
+  },
+  mcpPanel: {
+    marginTop: '20px',
+  },
+  logsPanel: {
+    marginTop: '20px',
+    height: '400px',
   },
 };
 

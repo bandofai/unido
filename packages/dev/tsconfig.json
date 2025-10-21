@@ -4,9 +4,10 @@
     "composite": true,
     "outDir": "./dist",
     "declarationDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"],
   "references": [{ "path": "../core" }, { "path": "../providers/base" }],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "src/__tests__/**/*"]
 }

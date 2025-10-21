@@ -57,16 +57,50 @@ import Component from ${JSON.stringify(absolutePath)};
 type ComponentProps = Record<string, unknown>;
 
 // TypeScript declarations for OpenAI Apps SDK
+// Complete window.openai API specification
 declare global {
   interface Window {
     openai?: {
-      toolInput?: unknown;
-      toolOutput?: ComponentProps;
-      toolResponseMetadata?: Record<string, unknown>;
-      widgetState?: Record<string, unknown>;
-      setWidgetState?: (state: Record<string, unknown>) => void;
-      callTool?: (name: string, args: unknown) => Promise<unknown>;
+      // Data properties (read-only)
+      readonly toolInput?: unknown;
+      readonly toolOutput?: ComponentProps;
+      readonly widgetState?: Record<string, unknown>;
+
+      // State management methods
+      setWidgetState?(state: Record<string, unknown>): Promise<void>;
+
+      // Tool invocation
+      callTool?(name: string, args: unknown): Promise<{ result: unknown }>;
+
+      // Communication methods
+      sendFollowupTurn?(request: { prompt: string }): Promise<void>;
+      requestDisplayMode?(request: { mode: 'inline' | 'pip' | 'fullscreen' }): Promise<{ mode: 'inline' | 'pip' | 'fullscreen' }>;
+      openExternal?(request: { href: string }): void;
+
+      // Layout & context properties (read-only)
+      readonly displayMode?: 'inline' | 'pip' | 'fullscreen';
+      readonly maxHeight?: number;
+      readonly locale?: string;
+      readonly theme?: 'light' | 'dark';
     };
+  }
+
+  // Window events
+  interface WindowEventMap {
+    'openai:set_globals': CustomEvent<{
+      displayMode?: 'inline' | 'pip' | 'fullscreen';
+      maxHeight?: number;
+      toolInput?: unknown;
+      toolOutput?: unknown;
+      widgetState?: Record<string, unknown>;
+      locale?: string;
+      theme?: 'light' | 'dark';
+    }>;
+    'openai:tool_response': CustomEvent<{
+      name: string;
+      args: unknown;
+      result: unknown;
+    }>;
   }
 }
 

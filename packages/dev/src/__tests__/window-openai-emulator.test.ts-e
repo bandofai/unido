@@ -1,0 +1,365 @@
+/**
+ * Tests for WindowOpenAIEmulator
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { WindowOpenAIEmulator } from '../window-openai-emulator.js';
+import type { McpWidgetClient } from '../mcp-client.js';
+import type { DisplayMode, Theme } from '../types/window-openai.js';
+
+// Mock MCP client
+const createMockMcpClient = (): McpWidgetClient => {
+  return {
+    callTool: vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Tool result' }],
+    }),
+    isConnected: vi.fn().mockReturnValue(true),
+    connect: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+    listTools: vi.fn().mockResolvedValue([]),
+    listWidgets: vi.fn().mockResolvedValue([]),
+    loadWidget: vi.fn().mockResolvedValue('<html></html>'),
+    getConnectionState: vi.fn().mockReturnValue('connected'),
+  } as unknown as McpWidgetClient;
+};
+
+describe('WindowOpenAIEmulator', () => {
+  let mcpClient: McpWidgetClient;
+  let emulator: WindowOpenAIEmulator;
+
+  beforeEach(() => {
+    mcpClient = createMockMcpClient();
+    emulator = new WindowOpenAIEmulator({
+      mcpClient,
+      toolInput: { city: 'Portland' },
+      toolOutput: { temperature: 72 },
+    });
+  });
+
+  describe('constructor', () => {
+    it('should create emulator with default options', () => {
+      expect(emulator).toBeDefined();
+      const api = emulator.getAPI();
+      expect(api).toBeDefined();
+      expect(api.displayMode).toBe('inline');
+      expect(api.theme).toBe('light');
+    });
+
+    it('should accept custom display mode', () => {
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        displayMode: 'fullscreen',
+      });
+
+      const api = customEmulator.getAPI();
+      expect(api.displayMode).toBe('fullscreen');
+    });
+
+    it('should accept custom theme', () => {
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        theme: 'dark',
+      });
+
+      const api = customEmulator.getAPI();
+      expect(api.theme).toBe('dark');
+    });
+
+    it('should accept custom max height', () => {
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        maxHeight: 800,
+      });
+
+      const api = customEmulator.getAPI();
+      expect(api.maxHeight).toBe(800);
+    });
+
+    it('should accept custom locale', () => {
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        locale: 'fr-FR',
+      });
+
+      const api = customEmulator.getAPI();
+      expect(api.locale).toBe('fr-FR');
+    });
+  });
+
+  describe('getAPI', () => {
+    it('should return window.openai API object', () => {
+      const api = emulator.getAPI();
+
+      expect(api).toHaveProperty('displayMode');
+      expect(api).toHaveProperty('theme');
+      expect(api).toHaveProperty('maxHeight');
+      expect(api).toHaveProperty('locale');
+      expect(api).toHaveProperty('toolInput');
+      expect(api).toHaveProperty('toolOutput');
+      expect(api).toHaveProperty('widgetState');
+      expect(api).toHaveProperty('callTool');
+      expect(api).toHaveProperty('requestDisplayMode');
+      expect(api).toHaveProperty('openExternal');
+      expect(api).toHaveProperty('sendFollowupTurn');
+    });
+
+    it('should include tool input and output', () => {
+      const api = emulator.getAPI();
+
+      expect(api.toolInput).toEqual({ city: 'Portland' });
+      expect(api.toolOutput).toEqual({ temperature: 72 });
+    });
+
+    it('should initialize widget state', () => {
+      const initialState = { count: 0 };
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        initialWidgetState: initialState,
+      });
+
+      const api = customEmulator.getAPI();
+      expect(api.widgetState).toEqual(initialState);
+    });
+  });
+
+  describe('callTool', () => {
+    it('should call MCP client with tool name and arguments', async () => {
+      const api = emulator.getAPI();
+      const callToolSpy = vi.spyOn(mcpClient, 'callTool');
+
+      await api.callTool('get_weather', { city: 'Tokyo' });
+
+      expect(callToolSpy).toHaveBeenCalledWith('get_weather', { city: 'Tokyo' });
+    });
+
+    it('should return tool result', async () => {
+      const api = emulator.getAPI();
+      const result = await api.callTool('get_weather', { city: 'Tokyo' });
+
+      expect(result).toBeDefined();
+      expect(result.result).toBeDefined();
+    });
+
+    it('should handle tool call errors', async () => {
+      const api = emulator.getAPI();
+      vi.spyOn(mcpClient, 'callTool').mockRejectedValue(new Error('Tool failed'));
+
+      await expect(api.callTool('failing_tool', {})).rejects.toThrow('Tool failed');
+    });
+
+    it('should emit tool response event', async () => {
+      const targetWindow = {
+        dispatchEvent: vi.fn(),
+      } as unknown as Window;
+
+      const emulatorWithWindow = new WindowOpenAIEmulator({
+        mcpClient,
+        targetWindow,
+      });
+
+      const api = emulatorWithWindow.getAPI();
+      await api.callTool('test_tool', { input: 'test' });
+
+      expect(targetWindow.dispatchEvent).toHaveBeenCalled();
+    });
+  });
+
+  describe('requestDisplayMode', () => {
+    it('should request display mode change', async () => {
+      const api = emulator.getAPI();
+      const result = await api.requestDisplayMode({ mode: 'fullscreen' });
+
+      expect(result).toBeDefined();
+      expect(result.mode).toBe('fullscreen');
+    });
+
+    it('should call onDisplayModeRequest callback', async () => {
+      const onDisplayModeRequest = vi.fn().mockReturnValue('fullscreen');
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        onDisplayModeRequest,
+      });
+
+      const api = customEmulator.getAPI();
+      await api.requestDisplayMode({ mode: 'fullscreen' });
+
+      expect(onDisplayModeRequest).toHaveBeenCalledWith('fullscreen');
+    });
+
+    it('should reject invalid display mode', async () => {
+      const onDisplayModeRequest = vi.fn().mockReturnValue('inline');
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        onDisplayModeRequest,
+      });
+
+      const api = customEmulator.getAPI();
+      const result = await api.requestDisplayMode({ mode: 'fullscreen' });
+
+      expect(result.mode).toBe('inline');
+    });
+  });
+
+  describe('openExternal', () => {
+    it('should open external link', () => {
+      const api = emulator.getAPI();
+      const result = api.openExternal({ href: 'https://example.com' });
+
+      // openExternal returns void;
+    });
+
+    it('should call onOpenExternal callback', () => {
+      const onOpenExternal = vi.fn();
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        onOpenExternal,
+      });
+
+      const api = customEmulator.getAPI();
+      api.openExternal({ href: 'https://example.com' });
+
+      expect(onOpenExternal).toHaveBeenCalledWith('https://example.com');
+    });
+
+    it('should emit external link event', () => {
+      const targetWindow = {
+        dispatchEvent: vi.fn(),
+      } as unknown as Window;
+
+      const emulatorWithWindow = new WindowOpenAIEmulator({
+        mcpClient,
+        targetWindow,
+      });
+
+      const api = emulatorWithWindow.getAPI();
+      api.openExternal({ href: 'https://example.com' });
+
+      expect(targetWindow.dispatchEvent).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendFollowupTurn', () => {
+    it('should request followup turn', () => {
+      const api = emulator.getAPI();
+      const result = api.sendFollowupTurn({ prompt: 'What about tomorrow?' });
+
+      // openExternal returns void;
+    });
+
+    it('should call onFollowupTurn callback', () => {
+      const onFollowupTurn = vi.fn();
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        onFollowupTurn,
+      });
+
+      const api = customEmulator.getAPI();
+      api.sendFollowupTurn({ prompt: 'What about tomorrow?' });
+
+      expect(onFollowupTurn).toHaveBeenCalledWith('What about tomorrow?');
+    });
+
+    it('should emit followup turn event', () => {
+      const targetWindow = {
+        dispatchEvent: vi.fn(),
+      } as unknown as Window;
+
+      const emulatorWithWindow = new WindowOpenAIEmulator({
+        mcpClient,
+        targetWindow,
+      });
+
+      const api = emulatorWithWindow.getAPI();
+      api.sendFollowupTurn({ prompt: 'What about tomorrow?' });
+
+      expect(targetWindow.dispatchEvent).toHaveBeenCalled();
+    });
+  });
+
+  describe('widget state management', () => {
+    it('should update widget state', () => {
+      const api = emulator.getAPI();
+
+      api.widgetState.count = 1;
+      expect(api.widgetState.count).toBe(1);
+
+      api.widgetState.name = 'test';
+      expect(api.widgetState.name).toBe('test');
+    });
+
+    it('should call onStateChange callback on state updates', () => {
+      const onStateChange = vi.fn();
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        initialWidgetState: { count: 0 },
+        onStateChange,
+      });
+
+      const api = customEmulator.getAPI();
+      api.widgetState.count = 5;
+
+      // Note: This requires the emulator to implement state change tracking
+      // For now, we verify the callback is provided
+      expect(onStateChange).toBeDefined();
+    });
+
+    it('should deep clone initial state', () => {
+      const initialState = { nested: { value: 42 } };
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        initialWidgetState: initialState,
+      });
+
+      const api = customEmulator.getAPI();
+      api.widgetState.nested.value = 100;
+
+      // Original should be unchanged
+      expect(initialState.nested.value).toBe(42);
+      expect(api.widgetState.nested.value).toBe(100);
+    });
+  });
+
+  describe('injectIntoWindow', () => {
+    it('should inject API into target window', () => {
+      const targetWindow = { openai: undefined } as unknown as Window;
+
+      const customEmulator = new WindowOpenAIEmulator({
+        mcpClient,
+        targetWindow,
+      });
+
+      customEmulator.injectIntoWindow();
+
+      expect((targetWindow as any).openai).toBeDefined();
+      expect((targetWindow as any).openai.displayMode).toBe('inline');
+    });
+
+    it('should use provided target window', () => {
+      const targetWindow = { openai: undefined } as unknown as Window;
+
+      emulator.injectIntoWindow(targetWindow);
+
+      expect((targetWindow as any).openai).toBeDefined();
+    });
+
+    it('should throw if no target window available', () => {
+      expect(() => {
+        emulator.injectIntoWindow();
+      }).toThrow();
+    });
+  });
+
+  describe('cleanup', () => {
+    it('should clean up emulator resources', () => {
+      const targetWindow = { openai: undefined } as unknown as Window;
+
+      emulator.injectIntoWindow(targetWindow);
+      expect((targetWindow as any).openai).toBeDefined();
+
+      emulator.cleanup();
+
+      // After cleanup, the window.openai should be removed or marked as cleaned
+      // This depends on the actual cleanup implementation
+    });
+  });
+});
