@@ -109,7 +109,8 @@ describe('WidgetIframeRenderer', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/Custom error: Load failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/Custom error:/i)).toBeInTheDocument();
+        expect(screen.getByText(/Load failed/i)).toBeInTheDocument();
       });
     });
   });

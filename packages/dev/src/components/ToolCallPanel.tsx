@@ -23,6 +23,11 @@ export interface ToolCallPanelProps {
   onToolCall?: (result: { name: string; args: unknown; result: unknown; error?: Error }) => void;
 
   /**
+   * Callback when tool call fails
+   */
+  onError?: (error: Error) => void;
+
+  /**
    * Custom styles
    */
   style?: React.CSSProperties;
@@ -59,6 +64,7 @@ interface ToolInfo {
 export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
   client,
   onToolCall,
+  onError,
   style,
   className,
 }) => {
@@ -76,11 +82,14 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
 
     setLoadingTools(true);
     try {
-      // Note: This would need a listTools() method on McpWidgetClient
-      // For now, we'll show a manual input
-      setTools([]);
+      const toolsList = await client.listTools();
+      setTools(toolsList.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+      })));
     } catch (err) {
       console.error('Failed to load tools:', err);
+      setTools([]);
     } finally {
       setLoadingTools(false);
     }
@@ -116,12 +125,14 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorObj = err instanceof Error ? err : new Error(errorMessage);
       setError(errorMessage);
+      onError?.(errorObj);
       onToolCall?.({
         name: selectedTool,
         args: JSON.parse(args),
         result: null,
-        error: err instanceof Error ? err : new Error(errorMessage),
+        error: errorObj,
       });
     } finally {
       setLoading(false);

@@ -12,6 +12,7 @@ const createMockClient = (tools = []): McpWidgetClient => {
     listTools: vi.fn().mockResolvedValue(tools),
     callTool: vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Success' }],
+      result: { status: 'success', data: 'Success' },
     }),
     isConnected: vi.fn().mockReturnValue(true),
     getState: vi.fn().mockReturnValue('connected'),
@@ -59,8 +60,8 @@ describe('ToolCallPanel', () => {
       mockClient = createMockClient();
       render(<ToolCallPanel client={mockClient} />);
 
-      // Look for textarea or code editor
-      const editor = screen.getByRole('textbox');
+      // Look for textarea for arguments JSON
+      const editor = screen.getByPlaceholderText(/city.*Portland/i);
       expect(editor).toBeInTheDocument();
     });
   });
@@ -85,7 +86,9 @@ describe('ToolCallPanel', () => {
       render(<ToolCallPanel client={mockClient} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/no tools/i)).toBeInTheDocument();
+        // With empty tool list, component shows a text input instead of select
+        const input = screen.getByPlaceholderText(/get_weather/i);
+        expect(input).toBeInTheDocument();
       });
     });
 
@@ -112,7 +115,7 @@ describe('ToolCallPanel', () => {
       });
 
       // Arguments should be initialized
-      const editor = screen.getByRole('textbox');
+      const editor = screen.getByPlaceholderText(/city.*Portland/i);
       expect(editor).toBeInTheDocument();
     });
   });
@@ -184,7 +187,9 @@ describe('ToolCallPanel', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText(/success/i)).toBeInTheDocument();
+        // Result should be displayed - check for "Result" label and success data
+        expect(screen.getByText('Result')).toBeInTheDocument();
+        expect(screen.getByText(/"success"/i)).toBeInTheDocument();
       });
     });
 
@@ -250,7 +255,7 @@ describe('ToolCallPanel', () => {
         fireEvent.change(select, { target: { value: 'test_tool' } });
       });
 
-      const editor = screen.getByRole('textbox');
+      const editor = screen.getByPlaceholderText(/city.*Portland/i);
       fireEvent.change(editor, { target: { value: '{ invalid json }' } });
 
       const button = screen.getByRole('button', { name: /execute/i });
@@ -275,7 +280,7 @@ describe('ToolCallPanel', () => {
         fireEvent.change(select, { target: { value: 'test_tool' } });
       });
 
-      const editor = screen.getByRole('textbox');
+      const editor = screen.getByPlaceholderText(/city.*Portland/i);
       fireEvent.change(editor, { target: { value: '{"key": "value"}' } });
 
       const button = screen.getByRole('button', { name: /execute/i });

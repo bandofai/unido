@@ -98,8 +98,8 @@ describe('LogPanel', () => {
     it('should filter by debug level', () => {
       render(<LogPanel logs={logs} />);
 
-      const debugFilter = screen.getByRole('button', { name: /debug/i });
-      fireEvent.click(debugFilter);
+      const select = screen.getByRole('combobox');
+      fireEvent.change(select, { target: { value: 'debug' } });
 
       expect(screen.getByText('Debug message')).toBeInTheDocument();
       expect(screen.queryByText('Info message')).not.toBeInTheDocument();
@@ -108,8 +108,8 @@ describe('LogPanel', () => {
     it('should filter by info level', () => {
       render(<LogPanel logs={logs} />);
 
-      const infoFilter = screen.getByRole('button', { name: /^info$/i });
-      fireEvent.click(infoFilter);
+      const select = screen.getByRole('combobox');
+      fireEvent.change(select, { target: { value: 'info' } });
 
       expect(screen.queryByText('Debug message')).not.toBeInTheDocument();
       expect(screen.getByText('Info message')).toBeInTheDocument();
@@ -118,8 +118,8 @@ describe('LogPanel', () => {
     it('should filter by warn level', () => {
       render(<LogPanel logs={logs} />);
 
-      const warnFilter = screen.getByRole('button', { name: /warn/i });
-      fireEvent.click(warnFilter);
+      const select = screen.getByRole('combobox');
+      fireEvent.change(select, { target: { value: 'warn' } });
 
       expect(screen.queryByText('Info message')).not.toBeInTheDocument();
       expect(screen.getByText('Warn message')).toBeInTheDocument();
@@ -128,8 +128,8 @@ describe('LogPanel', () => {
     it('should filter by error level', () => {
       render(<LogPanel logs={logs} />);
 
-      const errorFilter = screen.getByRole('button', { name: /error/i });
-      fireEvent.click(errorFilter);
+      const select = screen.getByRole('combobox');
+      fireEvent.change(select, { target: { value: 'error' } });
 
       expect(screen.queryByText('Info message')).not.toBeInTheDocument();
       expect(screen.getByText('Error message')).toBeInTheDocument();
