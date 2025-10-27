@@ -47,7 +47,7 @@ jobs:
         working-directory: packages/dev
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./packages/dev/coverage/coverage-final.json
           flags: unittests
