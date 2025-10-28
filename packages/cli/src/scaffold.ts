@@ -75,7 +75,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   // Write package.json
   console.log(chalk.gray('  Writing package.json...'));
-  const packageJson = getPackageJson(projectName);
+  const packageJson = getPackageJson({ projectName });
   await writeJsonFile(join(projectPath, 'package.json'), packageJson);
 
   // Write tsconfig.json
@@ -95,7 +95,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   // Write README.md
   console.log(chalk.gray('  Writing README.md...'));
-  const readme = getReadme(projectName);
+  const readme = getReadme({ projectName });
   await writeFile(join(projectPath, 'README.md'), readme);
 
   // Write .env.example
@@ -115,15 +115,15 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   switch (template) {
     case 'basic':
-      appCode = getBasicTemplate();
+      appCode = getBasicTemplate({ projectName });
       componentFiles.push({ name: 'GreetingCard.tsx', contents: getBasicComponentSource() });
       break;
     case 'weather':
-      appCode = getWeatherTemplate();
+      appCode = getWeatherTemplate({ projectName });
       componentFiles.push({ name: 'WeatherCard.tsx', contents: getWeatherComponentSource() });
       break;
     default:
-      appCode = getBasicTemplate();
+      appCode = getBasicTemplate({ projectName });
       componentFiles.push({ name: 'GreetingCard.tsx', contents: getBasicComponentSource() });
   }
 

@@ -2,9 +2,16 @@
  * Project templates
  */
 
-export function getPackageJson(projectName: string): Record<string, unknown> {
+/**
+ * Options for template generation
+ */
+export interface TemplateOptions {
+  projectName: string;
+}
+
+export function getPackageJson(options: TemplateOptions): Record<string, unknown> {
   return {
-    name: projectName,
+    name: options.projectName,
     version: '1.0.0',
     type: 'module',
     description: 'OpenAI App built with Unido',
@@ -20,10 +27,11 @@ export function getPackageJson(projectName: string): Record<string, unknown> {
       tunnel: 'ngrok http 3000',
     },
     dependencies: {
-      '@bandofai/unido-core': '^0.1.7',
-      '@bandofai/unido-provider-openai': '^0.1.15',
-      '@bandofai/unido-components': '^0.2.3',
-      '@bandofai/unido-dev': '^0.1.5',
+      '@bandofai/unido-core': '^0.1.10',
+      '@bandofai/unido-provider-openai': '^0.1.17',
+      '@bandofai/unido-components': '^0.2.6',
+      '@bandofai/unido-dev': '^0.1.9',
+      dotenv: '^16.4.7',
       react: '^18.3.1',
       'react-dom': '^18.3.1',
       zod: '^3.24.1',
@@ -127,8 +135,8 @@ auto-install-peers=true
 `;
 }
 
-export function getReadme(projectName: string): string {
-  return `# ${projectName}
+export function getReadme(options: TemplateOptions): string {
+  return `# ${options.projectName}
 
 OpenAI App built with [Unido](https://github.com/bandofai/unido) - a framework for building OpenAI custom tools.
 
@@ -145,6 +153,20 @@ OpenAI App built with [Unido](https://github.com/bandofai/unido) - a framework f
 \`\`\`bash
 npm install
 \`\`\`
+
+## Configuration
+
+You can customize the server port by creating a \`.env\` file in the root directory:
+
+\`\`\`bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and set your preferred port
+UNIDO_OPENAI_PORT=8080
+\`\`\`
+
+If no \`.env\` file is present, the server will default to port 3000.
 
 ## Development
 
@@ -217,7 +239,7 @@ npm start
 ## Project Structure
 
 \`\`\`
-${projectName}/
+${options.projectName}/
 ├── src/
 │   ├── components/
 │   │   └── GreetingCard.tsx   # React widget rendered in ChatGPT
@@ -240,8 +262,9 @@ MIT
 `;
 }
 
-export function getBasicTemplate(): string {
-  return `import { existsSync } from 'node:fs';
+export function getBasicTemplate(options: TemplateOptions): string {
+  return `import 'dotenv/config';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
 import type { ComponentMetadata, ProviderName } from '@bandofai/unido-core';
@@ -279,10 +302,10 @@ const greetingCardPath = resolveComponentPath('components/GreetingCard.tsx');
 // ============================================================================
 
 const app = createApp({
-  name: 'my-app',
+  name: '${options.projectName}',
   version: '1.0.0',
   providers: {
-    openai: openAI({ port: 3000 })
+    openai: openAI({ port: Number(process.env.UNIDO_OPENAI_PORT) || 3000 })
   },
 });
 
@@ -291,6 +314,18 @@ app.component({
   title: 'Greeting Card',
   description: 'Shows a personalized greeting message to the user.',
   sourcePath: greetingCardPath,
+  propsSchema: {
+    name: {
+      type: 'string',
+      required: true,
+      description: 'Name of the person to greet',
+    },
+    greeting: {
+      type: 'string',
+      required: true,
+      description: 'Greeting message to display',
+    },
+  },
   metadata: {
     openai: {
       renderHints: {
@@ -372,8 +407,9 @@ export { app };
 `;
 }
 
-export function getWeatherTemplate(): string {
-  return `import { existsSync } from 'node:fs';
+export function getWeatherTemplate(options: TemplateOptions): string {
+  return `import 'dotenv/config';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
 import type { ComponentMetadata, ProviderName } from '@bandofai/unido-core';
@@ -442,10 +478,10 @@ const weatherCardPath = resolveComponentPath('components/WeatherCard.tsx');
 // ============================================================================
 
 const app = createApp({
-  name: 'weather-app',
+  name: '${options.projectName}',
   version: '1.0.0',
   providers: {
-    openai: openAI({ port: 3000 })
+    openai: openAI({ port: Number(process.env.UNIDO_OPENAI_PORT) || 3000 })
   },
 });
 
@@ -454,6 +490,40 @@ app.component({
   title: 'Weather Card',
   description: 'Displays a quick overview of the current weather for a city.',
   sourcePath: weatherCardPath,
+  propsSchema: {
+    city: {
+      type: 'string',
+      required: true,
+      description: 'City name',
+    },
+    temperature: {
+      type: 'number',
+      required: true,
+      description: 'Temperature value',
+    },
+    condition: {
+      type: 'string',
+      required: true,
+      description: 'Weather condition (e.g., Sunny, Cloudy)',
+    },
+    humidity: {
+      type: 'number',
+      required: true,
+      description: 'Humidity percentage',
+    },
+    units: {
+      type: 'enum',
+      required: true,
+      enumValues: ['celsius', 'fahrenheit'],
+      defaultValue: 'celsius',
+      description: 'Temperature units',
+    },
+    updatedAt: {
+      type: 'string',
+      required: true,
+      description: 'ISO timestamp of last update',
+    },
+  },
   metadata: {
     openai: {
       renderHints: {
@@ -621,8 +691,9 @@ export default WeatherCard;
 
 
 export function getEnvExample(): string {
-  return `# Server Configuration
-PORT=3000
+  return `# OpenAI Provider Configuration
+# Port for the MCP server (default: 3000)
+UNIDO_OPENAI_PORT=3000
 `;
 }
 

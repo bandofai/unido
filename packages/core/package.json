@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-core",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Unido Core - Provider-agnostic framework for building AI applications",
   "type": "module",
   "main": "./dist/index.js",
