@@ -931,7 +931,10 @@ openAI({ port: 3001 })
 
 - [QUICKSTART.md](QUICKSTART.md) - Daily development workflows
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Comprehensive development guide
-- [README.md](README.md) - User-facing documentation
+- [README.md](README.md) - User-facing documentation with deployment guide
+- [docs/deployment/HOSTING_OPTIONS.md](docs/deployment/HOSTING_OPTIONS.md) - Hosting platform comparison and setup guides
+- [docs/deployment/PUBLISHING_GUIDE.md](docs/deployment/PUBLISHING_GUIDE.md) - Production deployment and App Store publishing
+- [docs/providers/openai/troubleshooting.md](docs/providers/openai/troubleshooting.md) - OpenAI provider troubleshooting and ChatGPT debugging
 - [scripts/README.md](scripts/README.md) - Helper scripts
 - [examples/weather-app/](examples/weather-app/) - Complete example
 

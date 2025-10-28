@@ -12,7 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Roadmap](#-roadmap)
+[Quick Start](#-quick-start) • [What are ChatGPT Apps?](#-what-are-chatgpt-apps) • [Testing](#-testing-your-app) • [Deployment](#-deployment) • [Documentation](#-documentation)
 
 </div>
 
@@ -47,6 +47,36 @@ app.tool('my_tool', { /* ... */ })
 | **Protocol** | Learn each platform's API | ✅ Built on MCP standard |
 | **Development Speed** | Slow (duplicate work) | ✅ Fast (write once) |
 | **Maintenance** | Update N codebases | ✅ Update 1 codebase |
+
+---
+
+## 🤖 What are ChatGPT Apps?
+
+ChatGPT Apps are custom tools that extend ChatGPT's capabilities by connecting to external services and APIs. Unlike GPTs (which are limited to prompts and knowledge files), ChatGPT Apps can:
+
+- **Execute code** on your backend servers
+- **Access databases** and external APIs
+- **Return rich UI** (interactive widgets, not just text)
+- **Maintain state** across conversations
+
+Where GPTs stop at prompt engineering, ChatGPT Apps deliver full-stack experiences, and they leap beyond legacy custom plugins by speaking MCP instead of the old OAuth manifest flow—your server defines the contract, ships richer UI, and runs the same everywhere.
+
+**How it works:**
+
+```mermaid
+graph LR
+    A[Your Unido App] --> B[MCP Server]
+    B --> C[ChatGPT]
+    C --> D[800M+ Weekly Users]
+    style A fill:#4CAF50
+    style B fill:#2196F3
+    style C fill:#FF9800
+    style D fill:#9C27B0
+```
+
+Unido makes building ChatGPT Apps simple by handling all the MCP (Model Context Protocol) complexity for you. You just define tools and widgets - Unido does the rest.
+
+**Learn more:** [OpenAI Apps SDK](https://developers.openai.com/apps-sdk/)
 
 ---
 
@@ -98,7 +128,19 @@ ngrok will give you a URL like `https://abc123.ngrok.io`. Use this in ChatGPT:
 
 > **Note:** Install ngrok first: `brew install ngrok` (macOS) or download from [ngrok.com](https://ngrok.com/download)
 
-### 4. Inspect with MCP tools
+---
+
+## 🧪 Testing Your App
+
+Follow this testing workflow for best results:
+
+| Tool | Purpose | When to Use |
+|------|---------|-------------|
+| **MCP Inspector** | Test tools and resources | During development |
+| **Widget Preview** | Test UI locally with full ChatGPT emulation | Widget development |
+| **ChatGPT** | End-to-end testing with real AI | Before deployment |
+
+### Test with MCP Inspector
 
 Install the CLI once per project:
 
@@ -128,6 +170,14 @@ console.log(await client.listResources());
 await transport.close();
 NODE
 ```
+
+### Debug in ChatGPT
+
+Having issues testing in ChatGPT? See our comprehensive [Debugging in ChatGPT Guide](docs/providers/openai/troubleshooting.md#debugging-in-chatgpt) for:
+- Opening ChatGPT developer console
+- Common CSP and CORS errors
+- Widget not appearing checklist
+- Interactive widget troubleshooting
 
 ---
 
@@ -533,6 +583,47 @@ Create `src/index.ts` with the [example above](#-complete-example).
 ```bash
 pnpm run dev
 ```
+
+---
+
+## 🚀 Deployment
+
+Ready to deploy your Unido app to production? You'll need an HTTPS endpoint for ChatGPT to connect to.
+
+### Quick Deploy Options
+
+| Platform | Difficulty | Cost | Best For |
+|----------|-----------|------|----------|
+| **[Vercel](docs/deployment/HOSTING_OPTIONS.md#vercel)** | Easy | Free tier available | Quick deploys, serverless |
+| **[Railway](docs/deployment/HOSTING_OPTIONS.md#railway)** | Easy | $5/month | Docker apps, databases |
+| **[DigitalOcean](docs/deployment/HOSTING_OPTIONS.md#digitalocean)** | Medium | $6/month | Full control, VPS |
+| **[AWS](docs/deployment/HOSTING_OPTIONS.md#aws)** | Advanced | Pay-as-you-go | Enterprise scale |
+
+### Deployment Steps
+
+1. **Build for production**
+   ```bash
+   pnpm run build
+   ```
+
+2. **Deploy to HTTPS endpoint** (see platform guides above)
+
+3. **Set environment variables**
+   ```bash
+   PORT=3000
+   NODE_ENV=production
+   ```
+
+4. **Verify health check**
+   ```bash
+   curl https://your-app.com/health
+   ```
+
+5. **Test in ChatGPT** with your production URL
+
+**Detailed Guides:**
+- 📚 [Hosting Options Comparison](docs/deployment/HOSTING_OPTIONS.md)
+- 📚 [Publishing to ChatGPT App Store](docs/deployment/PUBLISHING_GUIDE.md)
 
 ---
 

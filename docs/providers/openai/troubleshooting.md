@@ -615,6 +615,320 @@ input: z.object({
 
 ---
 
+## Debugging in ChatGPT
+
+### Opening ChatGPT Developer Console
+
+**Desktop App:**
+- **macOS:** `Cmd + Option + I`
+- **Windows:** `Ctrl + Shift + I`
+
+**Web:**
+- **Chrome/Edge:** `F12` or `Ctrl + Shift + I` (Windows) / `Cmd + Option + I` (Mac)
+- **Firefox:** `F12`
+- **Safari:** `Cmd + Option + C`
+
+### Common Error Patterns
+
+#### Widget Not Appearing
+
+**Symptom:** Tool executes successfully but no widget shows in ChatGPT.
+
+**Checklist:**
+1. ✅ Component registered with `app.component()`
+2. ✅ `metadata.openai.outputTemplate` set to `ui://widget/your-widget.html`
+3. ✅ Widget resource exposed in MCP resources list
+4. ✅ No console errors in ChatGPT developer tools
+
+**Verification:**
+```bash
+# Check resources list
+npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method resources/list
+```
+
+Should show: `ui://widget/your-widget.html`
+
+**Check in ChatGPT Console:**
+```javascript
+// Look for errors like:
+// - Failed to fetch widget resource
+// - Widget bundle failed to load
+// - Component render error
+```
+
+#### Widget Appears But Broken
+
+**Symptom:** Widget renders but doesn't work correctly or shows errors.
+
+**Common Causes:**
+
+**1. CSP Violations**
+
+**Error in Console:**
+```
+Refused to execute inline script because it violates Content Security Policy
+```
+
+**Solution:**
+Update widget CSP metadata:
+```typescript
+app.component({
+  type: 'my-widget',
+  metadata: {
+    openai: {
+      widgetCSP: "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'"
+    }
+  }
+})
+```
+
+See [CSP Guide](../../security/CSP_GUIDE.md) for secure configurations.
+
+**2. Missing window.openai API**
+
+**Error:**
+```
+Cannot read property 'callTool' of undefined
+```
+
+**Check:**
+```typescript
+useEffect(() => {
+  console.log('window.openai available:', !!window.openai);
+  console.log('window.openai.toolOutput:', window.openai?.toolOutput);
+}, []);
+```
+
+**Solution:**
+Ensure `metadata.openai.widgetAccessible: true` is set:
+```typescript
+app.component({
+  type: 'my-widget',
+  metadata: {
+    openai: {
+      renderHints: {
+        widgetAccessible: true  // ← Required for window.openai
+      }
+    }
+  }
+});
+```
+
+**3. Props Not Received**
+
+**Error:**
+```
+TypeError: Cannot read property 'city' of undefined
+```
+
+**Check:**
+```typescript
+// In component
+useEffect(() => {
+  console.log('Tool output:', window.openai?.toolOutput);
+}, []);
+```
+
+**Solution:**
+Verify `componentResponse()` includes props:
+```typescript
+return componentResponse(
+  'my-widget',
+  { city: 'Portland', temperature: 72 },  // ← Props here
+  'Fallback text'
+);
+```
+
+#### CORS Errors
+
+**Symptom:** "Cross-Origin Request Blocked" in console.
+
+**Error:**
+```
+Access to fetch at 'http://localhost:3000/...' from origin 'https://chatgpt.com'
+has been blocked by CORS policy
+```
+
+**Solution:**
+Unido OpenAI provider enables CORS by default. If you see this error:
+
+```typescript
+openAI({
+  port: 3000,
+  cors: true,        // Should be true (default)
+  corsOrigin: '*'    // Or specific origin
+})
+```
+
+For production, specify ChatGPT origin:
+```typescript
+openAI({
+  corsOrigin: 'https://chatgpt.com'
+})
+```
+
+#### Network Errors
+
+**Symptom:** "Failed to load resource" or "net::ERR_CONNECTION_REFUSED"
+
+**Causes:**
+1. Server not running
+2. Wrong URL in ChatGPT settings
+3. Firewall blocking connection
+
+**Debug Steps:**
+
+**1. Verify server is running:**
+```bash
+curl http://localhost:3000/health
+# Should return: {"status":"ok"}
+```
+
+**2. Check URL in ChatGPT:**
+- Settings → Custom Tools → Manage Servers
+- Verify URL matches server (e.g., `http://localhost:3000`)
+
+**3. Test MCP connection:**
+```bash
+npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list
+```
+
+### Debugging Workflow
+
+When widget doesn't work in ChatGPT:
+
+**1. Check MCP Connection**
+- ChatGPT Settings → Custom Tools
+- Verify green indicator (connected)
+- If red: server not reachable
+
+**2. Verify Tool Registration**
+- Ask ChatGPT: "What tools do you have access to?"
+- Should list your tools
+- If missing: check tool registration
+
+**3. Test Tool Execution**
+- Ask ChatGPT to use a tool
+- Open console (see shortcuts above)
+- Look for errors in Console tab
+
+**4. Inspect Widget Loading**
+- **Network tab:** Look for `ui://widget/...` requests
+- Should show 200 OK with HTML content
+- If 404: widget resource not found
+
+**5. Check Widget Console Errors**
+- **Console tab:** Look for React errors, CSP violations
+- Fix errors one at a time
+- Reload ChatGPT to test changes
+
+### Widget-Specific Debug Tips
+
+**Check Props Received:**
+```typescript
+export const MyWidget: FC = () => {
+  useEffect(() => {
+    console.log('=== WIDGET DEBUG ===');
+    console.log('window.openai:', window.openai);
+    console.log('toolOutput:', window.openai?.toolOutput);
+    console.log('conversationId:', window.openai?.conversationId);
+    console.log('==================');
+  }, []);
+
+  // Rest of component...
+}
+```
+
+**Test window.openai.callTool:**
+```typescript
+const handleClick = async () => {
+  console.log('Calling tool...');
+  try {
+    const result = await window.openai.callTool('my_action', { id: '123' });
+    console.log('Tool result:', result);
+  } catch (error) {
+    console.error('Tool call failed:', error);
+  }
+};
+```
+
+**Verify Component Rendering:**
+```typescript
+export const MyWidget: FC = () => {
+  console.log('MyWidget rendering!');
+
+  return (
+    <div>
+      <p>Widget rendered successfully!</p>
+      <p>Check console for props</p>
+    </div>
+  );
+};
+```
+
+### Production Debugging
+
+**Enable Source Maps (if needed):**
+```typescript
+// In bundler config
+{
+  sourcemap: true  // Helps debug minified code
+}
+```
+
+**Add Error Boundary:**
+```typescript
+class ErrorBoundary extends React.Component {
+  componentDidCatch(error, errorInfo) {
+    console.error('Widget error:', error, errorInfo);
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
+
+// Wrap your component
+export const MyWidget = () => (
+  <ErrorBoundary>
+    <ActualComponent />
+  </ErrorBoundary>
+);
+```
+
+### Still Stuck?
+
+**1. Compare with Working Example:**
+```bash
+cd examples/weather-app
+pnpm install
+pnpm run dev
+# Test in ChatGPT to verify setup works
+```
+
+**2. Check Widget Preview Tool:**
+```bash
+cd packages/dev
+pnpm run dev
+# Load widget locally to isolate ChatGPT-specific issues
+```
+
+**3. Review Documentation:**
+- [Widget Preview Guide](../../development/WIDGET_PREVIEW.md)
+- [OpenAI Apps SDK Guide](OPENAI_APPS_SDK.md)
+- [Widget Examples](examples/)
+
+**4. Ask for Help:**
+- 💬 [Open a discussion](https://github.com/bandofai/unido/discussions)
+- 🐛 [File an issue](https://github.com/bandofai/unido/issues) with:
+  - Console errors screenshot
+  - Tool registration code
+  - Component code
+  - MCP Inspector output
+- 🚀 Ready for production? Review the [Hosting Options guide](../deployment/HOSTING_OPTIONS.md) to choose an HTTPS platform and run final checks.
+
+---
+
 ## Getting Help
 
 ### 1. Check Server Logs

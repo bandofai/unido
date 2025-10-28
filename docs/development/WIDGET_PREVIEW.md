@@ -1048,6 +1048,7 @@ For detailed troubleshooting, see [WIDGET_PREVIEW_TROUBLESHOOTING.md](./WIDGET_P
 - [MCP Client Documentation](../../packages/dev/src/mcp-client.ts)
 - [OpenAI Emulator Documentation](../../packages/dev/src/window-openai-emulator.ts)
 - [Example Widgets](../../examples/weather-app/)
+- [Debugging in ChatGPT](../providers/openai/troubleshooting.md#debugging-in-chatgpt) – Run through the full end-to-end checklist once widgets look good locally.
 - [Model Context Protocol Spec](https://modelcontextprotocol.io/)
 
 ---
