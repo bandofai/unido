@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-provider-base",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Unido Provider Base - Base provider adapter interfaces",
   "type": "module",
   "main": "./dist/index.js",

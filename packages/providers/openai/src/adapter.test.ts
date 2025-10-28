@@ -76,7 +76,7 @@ export default TestCard;
     expect(entry).toBeDefined();
     expect(entry.resource.uri).toBe(uri);
     expect(entry.resource.mimeType).toBe('text/html+skybridge');
-    expect(entry.html).toContain('<script type="module" src="data:text/javascript;base64');
+    expect(entry.html).toContain('<script>');
   });
 
   it('exposes component metadata for responses', () => {

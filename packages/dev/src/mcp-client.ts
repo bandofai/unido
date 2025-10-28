@@ -306,6 +306,27 @@ export class McpWidgetClient {
   }
 
   /**
+   * List all available tools from the MCP server
+   *
+   * @returns Array of tool information
+   * @throws {Error} If not connected or request fails
+   */
+  async listTools(): Promise<Array<{ name: string; description?: string; inputSchema?: unknown }>> {
+    this.ensureConnected();
+    this.log('Listing tools...');
+
+    try {
+      const response = await this.client.listTools();
+
+      this.log(`Found ${response.tools.length} tools`, { tools: response.tools.map(t => t.name) });
+      return response.tools;
+    } catch (error) {
+      this.logError('Failed to list tools', error);
+      throw new Error(`Failed to list tools: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Load widget HTML from the MCP server
    *
    * @param type - Widget type (e.g., 'weather-card')

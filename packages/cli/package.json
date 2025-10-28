@@ -1,6 +1,6 @@
 {
   "name": "create-unido",
-  "version": "0.6.10",
+  "version": "0.6.11",
   "description": "CLI tool for scaffolding Unido projects",
   "type": "module",
   "bin": {
