@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-dev",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Unido Dev - Development server and tools for widget development",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,26 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./mcp-client": {
+      "types": "./dist/mcp-client.d.ts",
+      "import": "./dist/mcp-client.js"
+    },
+    "./components/WidgetIframeRenderer": {
+      "types": "./dist/components/WidgetIframeRenderer.d.ts",
+      "import": "./dist/components/WidgetIframeRenderer.js"
+    },
+    "./components/McpStatus": {
+      "types": "./dist/components/McpStatus.d.ts",
+      "import": "./dist/components/McpStatus.js"
+    },
+    "./components/ToolCallPanel": {
+      "types": "./dist/components/ToolCallPanel.d.ts",
+      "import": "./dist/components/ToolCallPanel.js"
+    },
+    "./components/LogPanel": {
+      "types": "./dist/components/LogPanel.d.ts",
+      "import": "./dist/components/LogPanel.js"
     }
   },
   "files": [

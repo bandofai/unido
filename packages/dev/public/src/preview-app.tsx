@@ -7,12 +7,12 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from './error-boundary.js';
 import { PropEditor } from './prop-editor.js';
-import { McpWidgetClient } from '../../src/mcp-client.js';
-import { WidgetIframeRenderer } from '../../src/components/WidgetIframeRenderer.js';
-import { McpStatus } from '../../src/components/McpStatus.js';
-import { ToolCallPanel } from '../../src/components/ToolCallPanel.js';
-import { LogPanel } from '../../src/components/LogPanel.js';
-import type { LogEntry } from '../../src/components/LogPanel.js';
+import { McpWidgetClient } from '@bandofai/unido-dev/mcp-client';
+import { WidgetIframeRenderer } from '@bandofai/unido-dev/components/WidgetIframeRenderer';
+import { McpStatus } from '@bandofai/unido-dev/components/McpStatus';
+import { ToolCallPanel } from '@bandofai/unido-dev/components/ToolCallPanel';
+import { LogPanel } from '@bandofai/unido-dev/components/LogPanel';
+import type { LogEntry } from '@bandofai/unido-dev/components/LogPanel';
 
 interface ComponentInfo {
   type: string;
