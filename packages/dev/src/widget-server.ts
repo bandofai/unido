@@ -72,6 +72,7 @@ export async function startWidgetServer(options: WidgetServerOptions): Promise<W
       sourcePath: path.isAbsolute(c.sourcePath)
         ? c.sourcePath
         : path.resolve(rootDir, c.sourcePath),
+      propsSchema: c.propsSchema, // Include props schema for type-aware prop editing
     }))
   );
 

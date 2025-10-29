@@ -75,6 +75,40 @@ app.component({
   title: 'Weather Card',
   description: 'Displays temperature, condition, and humidity for a city.',
   sourcePath: weatherCardPath,
+  propsSchema: {
+    city: {
+      type: 'string',
+      required: true,
+      description: 'City name',
+    },
+    temperature: {
+      type: 'number',
+      required: true,
+      description: 'Temperature value',
+    },
+    condition: {
+      type: 'string',
+      required: true,
+      description: 'Weather condition (e.g., Sunny, Cloudy)',
+    },
+    humidity: {
+      type: 'number',
+      required: true,
+      description: 'Humidity percentage',
+    },
+    units: {
+      type: 'enum',
+      required: true,
+      enumValues: ['celsius', 'fahrenheit'],
+      defaultValue: 'celsius',
+      description: 'Temperature units',
+    },
+    updatedAt: {
+      type: 'string',
+      required: false,
+      description: 'ISO timestamp of last update',
+    },
+  },
   metadata: {
     openai: {
       renderHints: {

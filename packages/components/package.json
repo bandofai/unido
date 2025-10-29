@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-components",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Unido Components - shadcn/ui components for AI applications",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,8 +19,8 @@
   ],
   "scripts": {
     "build": "tsc && pnpm run build:css",
-    "build:css": "tailwindcss -i ./src/globals.css -o ./dist/globals.css --minify",
-    "dev": "concurrently \"tsc --watch\" \"tailwindcss -i ./src/globals.css -o ./dist/globals.css --watch\"",
+    "build:css": "postcss ./src/globals.css -o ./dist/globals.css --minify",
+    "dev": "concurrently \"tsc --watch\" \"postcss ./src/globals.css -o ./dist/globals.css --watch\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo src/**/*.js src/**/*.js.map src/**/*.d.ts src/**/*.d.ts.map"
   },
@@ -36,14 +36,16 @@
   },
   "devDependencies": {
     "@bandofai/unido-core": "workspace:^0.1.3",
+    "@tailwindcss/postcss": "^4.1.16",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
     "postcss": "^8.4.49",
+    "postcss-cli": "^11.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.1.16",
     "typescript": "^5.7.3"
   },
   "peerDependencies": {
