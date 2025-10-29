@@ -66,6 +66,43 @@ export type UniversalContent = TextContent | ImageContent | ResourceContent | Er
 // Component Definitions
 // ============================================================================
 
+/**
+ * Schema for a single prop
+ */
+export interface PropSchemaField {
+  /**
+   * Prop type
+   */
+  type: 'string' | 'number' | 'boolean' | 'enum' | 'object' | 'array';
+
+  /**
+   * Whether the prop is required
+   * @default false
+   */
+  required?: boolean;
+
+  /**
+   * Enum values (for type: 'enum')
+   */
+  enumValues?: string[];
+
+  /**
+   * Human-readable description of the prop
+   */
+  description?: string;
+
+  /**
+   * Default value for the prop
+   */
+  defaultValue?: unknown;
+}
+
+/**
+ * Component props schema
+ * Maps prop names to their schema definitions
+ */
+export type PropSchema = Record<string, PropSchemaField>;
+
 export interface ComponentMetadata {
   /**
    * Custom bundle configuration
@@ -98,6 +135,20 @@ export interface ComponentDefinition {
    * Path to component source file (React component)
    */
   sourcePath: string;
+
+  /**
+   * Props schema for type-aware prop editing in dev mode
+   * Maps prop names to their type information
+   * @example
+   * ```typescript
+   * propsSchema: {
+   *   city: { type: 'string', required: true, description: 'City name' },
+   *   temperature: { type: 'number', required: true },
+   *   units: { type: 'enum', enumValues: ['celsius', 'fahrenheit'], defaultValue: 'celsius' }
+   * }
+   * ```
+   */
+  propsSchema?: PropSchema;
 
   /**
    * Provider-specific metadata

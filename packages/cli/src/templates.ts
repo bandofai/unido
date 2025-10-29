@@ -42,6 +42,11 @@ export function getPackageJson(options: TemplateOptions): Record<string, unknown
       '@types/react-dom': '^18.3.5',
       typescript: '^5.7.3',
       tsx: '^4.19.2',
+      tailwindcss: '^4.0.0',
+      '@tailwindcss/postcss': '^4.0.0',
+      autoprefixer: '^10.4.20',
+      postcss: '^8.4.49',
+      'postcss-cli': '^11.0.1',
     },
     engines: {
       node: '>=18.0.0',
@@ -262,8 +267,104 @@ MIT
 `;
 }
 
+export function getGlobalsCss(): string {
+  return `@import "tailwindcss";
+
+@theme {
+  /* Colors - shadcn/ui palette in oklch format */
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.24 0.02 264.4);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.24 0.02 264.4);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.24 0.02 264.4);
+  --color-primary: oklch(0.18 0.01 264.4);
+  --color-primary-foreground: oklch(0.97 0 0);
+  --color-secondary: oklch(0.96 0.01 264.4);
+  --color-secondary-foreground: oklch(0.18 0.01 264.4);
+  --color-muted: oklch(0.96 0.01 264.4);
+  --color-muted-foreground: oklch(0.53 0.01 257.2);
+  --color-accent: oklch(0.96 0.01 264.4);
+  --color-accent-foreground: oklch(0.18 0.01 264.4);
+  --color-destructive: oklch(0.58 0.23 27.33);
+  --color-destructive-foreground: oklch(0.97 0 0);
+  --color-border: oklch(0.89 0.01 264.4);
+  --color-input: oklch(0.89 0.01 264.4);
+  --color-ring: oklch(0.24 0.02 264.4);
+
+  /* Chart colors */
+  --color-chart-1: oklch(0.64 0.19 27.33);
+  --color-chart-2: oklch(0.53 0.11 197);
+  --color-chart-3: oklch(0.43 0.08 214.3);
+  --color-chart-4: oklch(0.71 0.18 43);
+  --color-chart-5: oklch(0.69 0.21 27);
+
+  /* Typography */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Layout */
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--color-border));
+  }
+
+  body {
+    background: hsl(var(--color-background));
+    color: hsl(var(--color-foreground));
+    font-family: var(--font-sans);
+  }
+
+  /* Dark mode - using :root.dark selector */
+  :root.dark,
+  .dark {
+    --color-background: oklch(0.24 0.02 264.4);
+    --color-foreground: oklch(0.97 0 0);
+    --color-card: oklch(0.24 0.02 264.4);
+    --color-card-foreground: oklch(0.97 0 0);
+    --color-popover: oklch(0.24 0.02 264.4);
+    --color-popover-foreground: oklch(0.97 0 0);
+    --color-primary: oklch(0.97 0 0);
+    --color-primary-foreground: oklch(0.18 0.01 264.4);
+    --color-secondary: oklch(0.28 0.01 264.4);
+    --color-secondary-foreground: oklch(0.97 0 0);
+    --color-muted: oklch(0.28 0.01 264.4);
+    --color-muted-foreground: oklch(0.64 0.01 257.2);
+    --color-accent: oklch(0.28 0.01 264.4);
+    --color-accent-foreground: oklch(0.97 0 0);
+    --color-destructive: oklch(0.42 0.19 27.33);
+    --color-destructive-foreground: oklch(0.97 0 0);
+    --color-border: oklch(0.28 0.01 264.4);
+    --color-input: oklch(0.28 0.01 264.4);
+    --color-ring: oklch(0.83 0.01 257.2);
+
+    /* Chart colors - dark theme */
+    --color-chart-1: oklch(0.54 0.17 220);
+    --color-chart-2: oklch(0.52 0.12 160);
+    --color-chart-3: oklch(0.61 0.19 30);
+    --color-chart-4: oklch(0.65 0.16 280);
+    --color-chart-5: oklch(0.62 0.18 340);
+  }
+}
+`;
+}
+
+export function getPostCssConfig(): string {
+  return `export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+};
+`;
+}
+
 export function getBasicTemplate(options: TemplateOptions): string {
-  return `import 'dotenv/config';
+  return `import './styles/globals.css';
+import 'dotenv/config';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
@@ -408,7 +509,8 @@ export { app };
 }
 
 export function getWeatherTemplate(options: TemplateOptions): string {
-  return `import 'dotenv/config';
+  return `import './styles/globals.css';
+import 'dotenv/config';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';

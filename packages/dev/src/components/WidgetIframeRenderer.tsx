@@ -351,6 +351,9 @@ export const WidgetIframeRenderer: React.FC<WidgetIframeRendererProps> = ({
   }, [mcpClient, widgetType, onLoad, onError]);
 
   // Inject window.openai API and render widget - only when HTML changes
+  // This effect is optimized to only recreate the iframe when absolutely necessary
+  // (widgetType changes or initial HTML load). Props are updated via separate effects
+  // using emulatorRef to avoid unnecessary iframe recreation.
   useEffect(() => {
     if (!widgetHtml || !iframeRef.current || loading || error) {
       return;
@@ -360,6 +363,8 @@ export const WidgetIframeRenderer: React.FC<WidgetIframeRendererProps> = ({
     const renderStartTime = performance.now();
 
     // Create emulator with current props
+    // Note: We use current prop values here for initial setup, but subsequent
+    // updates go through separate useEffects below that call emulatorRef methods
     const emulator = new WindowOpenAIEmulator({
       mcpClient,
       toolInput,
@@ -420,16 +425,25 @@ export const WidgetIframeRenderer: React.FC<WidgetIframeRendererProps> = ({
       emulator.cleanup();
       emulatorRef.current = null;
     };
-    // WARNING: Large dependency array by design
-    // This is necessary because emulator needs current props on creation
-    // Props that change frequently use separate update effects below
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // OPTIMIZATION: Only recreate iframe when HTML, loading state, or error state changes
+    // All other prop updates (toolOutput, displayMode, theme, etc.) are handled by
+    // separate useEffects below that update the emulator via ref without recreating iframe.
+    // This prevents the infinite refresh issue in MCP mode.
   }, [
     widgetHtml,
     loading,
     error,
-    // Include all emulator options as dependencies
-    // Changes to these will recreate the iframe (intended behavior)
+    // NOTE: We intentionally do NOT include toolInput, toolOutput, displayMode, theme,
+    // maxHeight in this dependency array. Those are handled by separate effects below.
+    // We DO include callbacks and mcpClient since they shouldn't change during widget lifecycle.
+    mcpClient,
+    initialWidgetState,
+    locale,
+    onStateChange,
+    onDisplayModeRequest,
+    onOpenExternal,
+    onFollowupTurn,
+    cspConfig,
   ]);
 
   // Update emulator when props change
@@ -493,6 +507,16 @@ export const WidgetIframeRenderer: React.FC<WidgetIframeRendererProps> = ({
     <div className={className} style={{ width: '100%', height: '100%', ...containerStyle }}>
       <iframe
         ref={iframeRef}
+        // Security Note: This sandbox configuration uses both allow-scripts and allow-same-origin,
+        // which browsers warn "can escape sandboxing". This combination is necessary because:
+        // 1. allow-scripts: Required to execute widget JavaScript code
+        // 2. allow-same-origin: Required to inject window.openai API from parent window
+        //
+        // Security mitigation: We use Content Security Policy (CSP) with nonces (see lines 406-417)
+        // to provide an additional layer of protection against XSS and code injection.
+        //
+        // For production deployments, widgets run in ChatGPT's sandboxed environment with
+        // stricter security controls. This dev preview trades some isolation for functionality.
         sandbox={sandbox}
         style={{
           width: '100%',

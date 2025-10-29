@@ -12,8 +12,10 @@ import {
   getBasicTemplate,
   getEnvExample,
   getGitignore,
+  getGlobalsCss,
   getNpmrc,
   getPackageJson,
+  getPostCssConfig,
   getReadme,
   getTsConfig,
   getWeatherComponentSource,
@@ -71,6 +73,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   // Create src and scripts directories
   await mkdir(join(projectPath, 'src'));
   await mkdir(join(projectPath, 'src', 'components'));
+  await mkdir(join(projectPath, 'src', 'styles'));
   await mkdir(join(projectPath, 'scripts'));
 
   // Write package.json
@@ -102,6 +105,16 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   console.log(chalk.gray('  Writing .env.example...'));
   const envExample = getEnvExample();
   await writeFile(join(projectPath, '.env.example'), envExample);
+
+  // Write CSS files
+  console.log(chalk.gray('  Writing src/styles/globals.css...'));
+  const globalsCss = getGlobalsCss();
+  await writeFile(join(projectPath, 'src', 'styles', 'globals.css'), globalsCss);
+
+  // Write PostCSS config
+  console.log(chalk.gray('  Writing postcss.config.js...'));
+  const postCssConfig = getPostCssConfig();
+  await writeFile(join(projectPath, 'postcss.config.js'), postCssConfig);
 
   // Write widget dev script
   console.log(chalk.gray('  Writing src/widget-dev.ts...'));

@@ -3,7 +3,7 @@
  */
 
 import { components as componentData } from 'virtual:unido-components';
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from './error-boundary.js';
 import { PropEditor } from './prop-editor.js';
@@ -13,12 +13,14 @@ import { McpStatus } from '@bandofai/unido-dev/components/McpStatus';
 import { ToolCallPanel } from '@bandofai/unido-dev/components/ToolCallPanel';
 import { LogPanel } from '@bandofai/unido-dev/components/LogPanel';
 import type { LogEntry } from '@bandofai/unido-dev/components/LogPanel';
+import type { PropSchema } from '@bandofai/unido-core';
 
 interface ComponentInfo {
   type: string;
   title: string;
   description: string;
   sourcePath: string;
+  propsSchema?: PropSchema;
 }
 
 type LoadMode = 'direct' | 'mcp';
@@ -65,7 +67,7 @@ const App = () => {
   }, [loadMode, mcpClient]);
 
   // Add log entry
-  const addLog = (level: LogEntry['level'], message: string, data?: unknown) => {
+  const addLog = useCallback((level: LogEntry['level'], message: string, data?: unknown) => {
     const entry: LogEntry = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: Date.now(),
@@ -74,10 +76,10 @@ const App = () => {
       data,
     };
     setLogs((prev) => [...prev, entry]);
-  };
+  }, []);
 
   // Handle MCP reconnect
-  const handleReconnect = async () => {
+  const handleReconnect = useCallback(async () => {
     try {
       addLog('info', 'Reconnecting to MCP server...');
       await mcpClient.connect();
@@ -85,7 +87,30 @@ const App = () => {
     } catch (error) {
       addLog('error', 'Reconnection failed', error);
     }
-  };
+  }, [addLog, mcpClient]);
+
+  // Memoized callbacks for WidgetIframeRenderer
+  const handleWidgetError = useCallback((error: Error) => {
+    addLog('error', 'Widget error', error);
+  }, [addLog]);
+
+  const handleWidgetLoad = useCallback(() => {
+    if (selectedComponent) {
+      addLog('info', `Widget ${selectedComponent.type} loaded`);
+    }
+  }, [addLog, selectedComponent]);
+
+  const handlePerformanceMetric = useCallback((metric: { name: string; duration: number; timestamp: number }) => {
+    addLog('debug', 'Performance', metric);
+  }, [addLog]);
+
+  const handleToolCall = useCallback((name: string, args: unknown, result: unknown) => {
+    addLog('info', `Tool call: ${name}`, { args, result });
+  }, [addLog]);
+
+  const handleClearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
 
   // Dynamically import component
   const loadComponent = (sourcePath: string) => {
@@ -201,7 +226,11 @@ const App = () => {
               </div>
 
               {/* Prop editor */}
-              <PropEditor props={props} onChange={setProps} />
+              <PropEditor
+                props={props}
+                onChange={setProps}
+                availableProps={selectedComponent.propsSchema}
+              />
 
               {/* Preview */}
               <div style={styles.preview}>
@@ -221,9 +250,9 @@ const App = () => {
                         toolOutput={props}
                         displayMode="inline"
                         theme="light"
-                        onError={(error) => addLog('error', 'Widget error', error)}
-                        onLoad={() => addLog('info', `Widget ${selectedComponent.type} loaded`)}
-                        onPerformanceMetric={(metric) => addLog('debug', 'Performance', metric)}
+                        onError={handleWidgetError}
+                        onLoad={handleWidgetLoad}
+                        onPerformanceMetric={handlePerformanceMetric}
                       />
                     )}
                   </ErrorBoundary>
@@ -235,10 +264,8 @@ const App = () => {
                 <div style={styles.mcpPanel}>
                   <ToolCallPanel
                     client={mcpClient}
-                    onToolCall={(name, args, result) => {
-                      addLog('info', `Tool call: ${name}`, { args, result });
-                    }}
-                    onError={(error) => addLog('error', 'Tool call error', error)}
+                    onToolCall={handleToolCall}
+                    onError={handleWidgetError}
                   />
                 </div>
               )}
@@ -248,7 +275,7 @@ const App = () => {
                 <div style={styles.logsPanel}>
                   <LogPanel
                     logs={logs}
-                    onClear={() => setLogs([])}
+                    onClear={handleClearLogs}
                     maxLogs={200}
                   />
                 </div>

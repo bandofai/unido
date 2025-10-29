@@ -44,6 +44,7 @@ app.tool('my_tool', { /* ... */ })
 |---------|--------------|-------|
 | **Multi-Platform** | Write separate code for each | ✅ Single codebase |
 | **Type Safety** | Manual types per platform | ✅ Zod + TypeScript inference |
+| **Styling** | Manual CSS setup | ✅ Tailwind CSS v4 + dark mode |
 | **Protocol** | Learn each platform's API | ✅ Built on MCP standard |
 | **Development Speed** | Slow (duplicate work) | ✅ Fast (write once) |
 | **Maintenance** | Update N codebases | ✅ Update 1 codebase |
@@ -326,6 +327,39 @@ return componentResponse(
 - **Future platforms**: Automatically adapts
 - **Automatic bundling**: Components registered with `app.component()` are bundled once on startup and exposed to ChatGPT as MCP resources (`ui://widget/<name>.html`).
 - **Widget accessibility**: Mark widgets as interactive via `metadata.openai.renderHints.widgetAccessible = true` to allow follow-up tool calls from UI actions.
+
+### 🎨 Professional Styling Out of the Box
+
+Generated projects include complete **Tailwind CSS v4** styling infrastructure with dark mode support:
+
+```typescript
+// Components automatically styled with Tailwind classes
+<div className="rounded-lg border bg-card p-6">
+  <h3 className="text-2xl font-semibold">{title}</h3>
+  <p className="text-muted-foreground">{description}</p>
+</div>
+```
+
+**What's included:**
+- ✅ **Tailwind CSS v4** with modern `@theme` configuration
+- ✅ **Dark mode** support via `.dark` class toggle
+- ✅ **shadcn/ui** color palette in oklch format
+- ✅ **Customizable themes** - edit `src/styles/globals.css`
+- ✅ **Automatic CSS bundling** with widgets
+- ✅ **Zero config** - works out of the box
+
+**Customization:**
+
+```css
+/* src/styles/globals.css */
+@theme {
+  --color-primary: oklch(0.58 0.23 27.33);  /* Change brand color */
+  --font-sans: "Inter", sans-serif;         /* Change font */
+  --radius: 1rem;                           /* Change border radius */
+}
+```
+
+Changes apply immediately with hot reload!
 
 ### 🔌 Built on Industry Standards
 

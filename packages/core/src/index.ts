@@ -29,6 +29,8 @@ export type {
   ComponentDefinition,
   ComponentBundle,
   ComponentMetadata,
+  PropSchema,
+  PropSchemaField,
 } from '@bandofai/unido-core/types.js';
 
 // Core types
