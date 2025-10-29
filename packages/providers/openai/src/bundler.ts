@@ -155,6 +155,7 @@ if (rootElement) {
         '.js': 'js',
         '.jsx': 'jsx',
         '.json': 'json',
+        '.css': 'css',
       },
       absWorkingDir: rootDir,
       nodePaths: Array.from(nodePaths),
