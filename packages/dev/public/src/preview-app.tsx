@@ -361,7 +361,7 @@ const AppContent = () => {
                       <Suspense fallback={<div style={styles.loading}>Loading...</div>}>
                         {React.createElement(loadComponent(selectedComponent.sourcePath), props)}
                       </Suspense>
-                    ) : (
+                    ) : mcpClient ? (
                       <WidgetIframeRenderer
                         mcpClient={mcpClient}
                         widgetType={selectedComponent.type}
@@ -372,13 +372,15 @@ const AppContent = () => {
                         onLoad={handleWidgetLoad}
                         onPerformanceMetric={handlePerformanceMetric}
                       />
+                    ) : (
+                      <div style={styles.loading}>Initializing MCP client...</div>
                     )}
                   </ErrorBoundary>
                 </div>
               </div>
 
               {/* MCP Tools Panel */}
-              {loadMode === 'mcp' && (
+              {loadMode === 'mcp' && mcpClient && (
                 <div style={styles.mcpPanel}>
                   <ToolCallPanel
                     client={mcpClient}
