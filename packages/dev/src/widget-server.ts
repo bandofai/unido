@@ -32,6 +32,12 @@ export interface WidgetServerOptions {
    * Verbose logging
    */
   verbose?: boolean;
+
+  /**
+   * MCP server URL for testing widgets in MCP mode
+   * Defaults to http://localhost:3000
+   */
+  serverUrl?: string;
 }
 
 export interface WidgetServer {
@@ -61,6 +67,7 @@ export async function startWidgetServer(options: WidgetServerOptions): Promise<W
     open = true,
     rootDir = process.cwd(),
     verbose = false,
+    serverUrl = 'http://localhost:3000',
   } = options;
 
   // Create virtual module with component data
@@ -107,7 +114,7 @@ export async function startWidgetServer(options: WidgetServerOptions): Promise<W
         },
         load(id) {
           if (id === resolvedVirtualModuleId) {
-            return `export const components = ${componentData};`;
+            return `export const components = ${componentData};\nexport const serverUrl = ${JSON.stringify(serverUrl)};`;
           }
           return null;
         },

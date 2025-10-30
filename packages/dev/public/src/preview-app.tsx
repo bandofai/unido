@@ -2,7 +2,7 @@
  * Widget preview React application
  */
 
-import { components as componentData } from 'virtual:unido-components';
+import { components as componentData, serverUrl as defaultServerUrl } from 'virtual:unido-components';
 import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from './error-boundary.js';
@@ -26,7 +26,8 @@ interface ComponentInfo {
 
 type LoadMode = 'direct' | 'mcp';
 
-const STORAGE_KEY = 'unido:preview:loadMode';
+const STORAGE_KEY_LOAD_MODE = 'unido:preview:loadMode';
+const STORAGE_KEY_SERVER_URL = 'unido:preview:serverUrl';
 
 const AppContent = () => {
   const { showToast } = useToast();
@@ -38,31 +39,53 @@ const AppContent = () => {
 
   // MCP mode state
   const [loadMode, setLoadMode] = useState<LoadMode>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY_LOAD_MODE);
     return (saved === 'mcp' || saved === 'direct') ? saved : 'direct';
   });
-  const [mcpClient] = useState(() => new McpWidgetClient({
-    serverUrl: 'http://localhost:3000',
-    autoReconnect: true,
-    maxReconnectAttempts: 5,
-  }));
+  const [serverUrl, setServerUrl] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_SERVER_URL);
+    return saved || defaultServerUrl || 'http://localhost:3000';
+  });
+  const [editingServerUrl, setEditingServerUrl] = useState(false);
+  const [tempServerUrl, setTempServerUrl] = useState(serverUrl);
+  const [mcpClient, setMcpClient] = useState<McpWidgetClient | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  // Persist load mode preference
+  // Initialize MCP client with current server URL
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, loadMode);
+    const client = new McpWidgetClient({
+      serverUrl,
+      autoReconnect: true,
+      maxReconnectAttempts: 5,
+    });
+    setMcpClient(client);
+
+    return () => {
+      if (client.isConnected()) {
+        client.disconnect();
+      }
+    };
+  }, [serverUrl]);
+
+  // Persist preferences
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_LOAD_MODE, loadMode);
   }, [loadMode]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_SERVER_URL, serverUrl);
+  }, [serverUrl]);
 
   // Connect MCP client when in MCP mode
   useEffect(() => {
-    if (loadMode === 'mcp' && !mcpClient.isConnected()) {
+    if (loadMode === 'mcp' && mcpClient && !mcpClient.isConnected()) {
       mcpClient.connect().catch((error) => {
         addLog('error', 'Failed to connect to MCP server', error);
       });
     }
 
     return () => {
-      if (mcpClient.isConnected()) {
+      if (mcpClient && mcpClient.isConnected()) {
         mcpClient.disconnect();
       }
     };
@@ -82,6 +105,7 @@ const AppContent = () => {
 
   // Handle MCP reconnect
   const handleReconnect = useCallback(async () => {
+    if (!mcpClient) return;
     try {
       addLog('info', 'Reconnecting to MCP server...');
       await mcpClient.connect();
@@ -90,6 +114,22 @@ const AppContent = () => {
       addLog('error', 'Reconnection failed', error);
     }
   }, [addLog, mcpClient]);
+
+  // Handle server URL change
+  const handleServerUrlChange = useCallback(() => {
+    if (tempServerUrl && tempServerUrl !== serverUrl) {
+      addLog('info', `Changing MCP server URL to: ${tempServerUrl}`);
+      setServerUrl(tempServerUrl);
+      setEditingServerUrl(false);
+    } else {
+      setEditingServerUrl(false);
+    }
+  }, [tempServerUrl, serverUrl, addLog]);
+
+  const handleCancelServerUrlChange = useCallback(() => {
+    setTempServerUrl(serverUrl);
+    setEditingServerUrl(false);
+  }, [serverUrl]);
 
   // Memoized callbacks for WidgetIframeRenderer
   const handleWidgetError = useCallback((error: Error) => {
@@ -211,9 +251,57 @@ const AppContent = () => {
         </div>
 
         {/* MCP Status Bar */}
-        {loadMode === 'mcp' && (
+        {loadMode === 'mcp' && mcpClient && (
           <div style={styles.statusBar}>
-            <McpStatus client={mcpClient} onReconnect={handleReconnect} />
+            <div style={styles.statusRow}>
+              <McpStatus client={mcpClient} onReconnect={handleReconnect} />
+              <div style={styles.serverUrlControl}>
+                {editingServerUrl ? (
+                  <div style={styles.serverUrlEditor}>
+                    <input
+                      type="text"
+                      value={tempServerUrl}
+                      onChange={(e) => setTempServerUrl(e.target.value)}
+                      style={styles.serverUrlInput}
+                      placeholder="http://localhost:3000"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleServerUrlChange();
+                        if (e.key === 'Escape') handleCancelServerUrlChange();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleServerUrlChange}
+                      style={{...styles.button, ...styles.buttonSmall}}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelServerUrlChange}
+                      style={{...styles.button, ...styles.buttonSmall}}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div style={styles.serverUrlDisplay}>
+                    <span style={styles.serverUrlLabel}>MCP Server:</span>
+                    <code style={styles.serverUrlValue}>{serverUrl}</code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempServerUrl(serverUrl);
+                        setEditingServerUrl(true);
+                      }}
+                      style={{...styles.button, ...styles.buttonSmall}}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </header>
@@ -399,6 +487,49 @@ const styles = {
     marginTop: '12px',
     paddingTop: '12px',
     borderTop: '1px solid #e5e5e5',
+  },
+  statusRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  serverUrlControl: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  serverUrlDisplay: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  serverUrlLabel: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#666',
+  },
+  serverUrlValue: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    background: '#f5f5f5',
+    borderRadius: '4px',
+    color: '#333',
+  },
+  serverUrlEditor: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  serverUrlInput: {
+    padding: '6px 12px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '13px',
+    width: '300px',
+  },
+  buttonSmall: {
+    padding: '6px 12px',
+    fontSize: '13px',
   },
   main: {
     display: 'flex',

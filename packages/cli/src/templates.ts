@@ -30,7 +30,7 @@ export function getPackageJson(options: TemplateOptions): Record<string, unknown
       '@bandofai/unido-core': '^0.1.12',
       '@bandofai/unido-provider-openai': '^0.1.23',
       '@bandofai/unido-components': '^0.2.8',
-      '@bandofai/unido-dev': '^0.1.14',
+      '@bandofai/unido-dev': '^0.1.15',
       dotenv: '^16.4.7',
       react: '^18.3.1',
       'react-dom': '^18.3.1',
@@ -801,6 +801,11 @@ export function getEnvExample(): string {
   return `# OpenAI Provider Configuration
 # Port for the MCP server (default: 3000)
 UNIDO_OPENAI_PORT=3000
+
+# Widget Development Configuration
+# MCP server URL for testing widgets (default: http://localhost:3000)
+# You can also change this in the widget dev server UI
+UNIDO_MCP_SERVER_URL=http://localhost:3000
 `;
 }
 
@@ -821,6 +826,9 @@ async function main() {
     port: 5173,
     open: true,
     verbose: true,
+    // MCP server URL - change this to test with different MCP servers
+    // You can also change it in the UI when running the widget dev server
+    serverUrl: process.env.UNIDO_MCP_SERVER_URL || 'http://localhost:3000',
   });
 
   console.log(\`✅ Widget preview running at \${server.url}\\n\`);

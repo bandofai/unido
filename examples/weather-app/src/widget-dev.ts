@@ -14,6 +14,9 @@ async function main() {
     port: 5173,
     open: false, // Don't auto-open in test
     verbose: true,
+    // MCP server URL - change this to test with different MCP servers
+    // You can also change it in the UI when running the widget dev server
+    serverUrl: process.env.UNIDO_MCP_SERVER_URL || 'http://localhost:3000',
   });
 
   console.log(`✅ Widget preview running at ${server.url}\n`);
