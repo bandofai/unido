@@ -711,6 +711,7 @@ export { app };
 
 export function getBasicComponentSource(): string {
   return `import { Card, CardContent, CardHeader, CardTitle } from '@bandofai/unido-components';
+import { useToolOutput } from '@bandofai/unido-dev';
 import type { FC } from 'react';
 
 export interface GreetingCardProps {
@@ -718,16 +719,23 @@ export interface GreetingCardProps {
   greeting: string;
 }
 
-const GreetingCard: FC<GreetingCardProps> = ({ name, greeting }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>{greeting}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-muted-foreground">Nice to meet you, {name}!</p>
-    </CardContent>
-  </Card>
-);
+const GreetingCard: FC<GreetingCardProps> = (props) => {
+  // Get props from window.openai.toolOutput (for ChatGPT/MCP mode)
+  // Falls back to React props for direct rendering
+  const toolOutput = useToolOutput<GreetingCardProps>();
+  const { name, greeting } = toolOutput || props;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{greeting}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground">Nice to meet you, {name}!</p>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default GreetingCard;
 `;
@@ -742,6 +750,7 @@ export function getWeatherComponentSource(): string {
   CardHeader,
   CardTitle,
 } from '@bandofai/unido-components';
+import { useToolOutput } from '@bandofai/unido-dev';
 import type { FC } from 'react';
 
 export interface WeatherCardProps {
@@ -753,14 +762,12 @@ export interface WeatherCardProps {
   updatedAt: string;
 }
 
-const WeatherCard: FC<WeatherCardProps> = ({
-  city,
-  temperature,
-  condition,
-  humidity,
-  units,
-  updatedAt,
-}) => {
+const WeatherCard: FC<WeatherCardProps> = (props) => {
+  // Get props from window.openai.toolOutput (for ChatGPT/MCP mode)
+  // Falls back to React props for direct rendering
+  const toolOutput = useToolOutput<WeatherCardProps>();
+  const { city, temperature, condition, humidity, units, updatedAt } = toolOutput || props;
+
   const unitLabel = units === 'celsius' ? '°C' : '°F';
 
   return (
