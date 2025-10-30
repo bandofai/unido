@@ -173,11 +173,6 @@ if (rootElement) {
       sourcemap: false,
       minify: true,
       logLevel: 'silent',
-      external: [
-        // Exclude dev dependencies from browser bundle
-        '@bandofai/unido-dev',
-        '@bandofai/unido-dev/*',
-      ],
       define: {
         'process.env.NODE_ENV': '"production"',
       },
@@ -191,6 +186,24 @@ if (rootElement) {
       },
       absWorkingDir: rootDir,
       nodePaths: Array.from(nodePaths),
+      plugins: [
+        {
+          name: 'exclude-unido-dev',
+          setup(build) {
+            // Intercept imports of @bandofai/unido-dev and replace with empty module
+            // The actual hook implementation is inlined in the entry file
+            build.onResolve({ filter: /^@bandofai\/unido-dev/ }, () => {
+              return { path: 'unido-dev-stub', namespace: 'unido-dev-stub' };
+            });
+            build.onLoad({ filter: /.*/, namespace: 'unido-dev-stub' }, () => {
+              return {
+                contents: '// @bandofai/unido-dev stub - hooks are inlined\nexport const useToolOutput = () => undefined;',
+                loader: 'js'
+              };
+            });
+          },
+        },
+      ],
     });
 
     // Clean up temp file

@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-provider-openai",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Unido OpenAI - Provider adapter for OpenAI ChatGPT",
   "type": "module",
   "main": "./dist/index.js",
