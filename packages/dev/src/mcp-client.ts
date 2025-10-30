@@ -434,7 +434,17 @@ export class McpWidgetClient {
       // Extract result from content
       let result: unknown = response.content;
 
-      // If content is an array, extract the first item
+      // First, check for structured content (component props)
+      if ('structuredContent' in response && response.structuredContent) {
+        result = response.structuredContent;
+        this.log(`Tool call succeeded: ${name} (structured content)`, { result });
+        return {
+          result,
+          isError: false,
+        };
+      }
+
+      // Fallback: extract from content array
       if (Array.isArray(response.content) && response.content.length > 0) {
         const firstContent = response.content[0];
         if (firstContent && 'text' in firstContent) {
