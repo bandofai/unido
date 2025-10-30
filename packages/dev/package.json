@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-dev",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Unido Dev - Development server and tools for widget development",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,6 +30,10 @@
     "./components/LogPanel": {
       "types": "./dist/components/LogPanel.d.ts",
       "import": "./dist/components/LogPanel.js"
+    },
+    "./utils/toast": {
+      "types": "./dist/utils/toast.d.ts",
+      "import": "./dist/utils/toast.js"
     }
   },
   "files": [
