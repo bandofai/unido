@@ -56,33 +56,6 @@ import Component from ${JSON.stringify(absolutePath)};
 
 type ComponentProps = Record<string, unknown>;
 
-// Inline hook implementations to avoid bundling @bandofai/unido-dev
-// This prevents Node.js dependencies from being included in browser bundle
-const { useState: reactUseState, useEffect: reactUseEffect } = React;
-
-function useToolOutput<T = unknown>(): T | undefined {
-  const [value, setValue] = reactUseState<T | undefined>(() => {
-    return typeof window !== 'undefined' && window.openai ? (window.openai.toolOutput as T) : undefined;
-  });
-
-  reactUseEffect(() => {
-    const handler = (event: CustomEvent) => {
-      if ('toolOutput' in event.detail) {
-        setValue(event.detail.toolOutput as T);
-      }
-    };
-    window.addEventListener('openai:set_globals', handler as EventListener);
-    if (typeof window !== 'undefined' && window.openai) {
-      setValue(window.openai.toolOutput as T);
-    }
-    return () => {
-      window.removeEventListener('openai:set_globals', handler as EventListener);
-    };
-  }, []);
-
-  return value;
-}
-
 // TypeScript declarations for OpenAI Apps SDK
 // Complete window.openai API specification
 declare global {
@@ -188,16 +161,56 @@ if (rootElement) {
       nodePaths: Array.from(nodePaths),
       plugins: [
         {
-          name: 'exclude-unido-dev',
+          name: 'provide-unido-dev-hooks',
           setup(build) {
-            // Intercept imports of @bandofai/unido-dev and replace with empty module
-            // The actual hook implementation is inlined in the entry file
+            // Intercept imports of @bandofai/unido-dev and provide working hook implementations
             build.onResolve({ filter: /^@bandofai\/unido-dev/ }, () => {
-              return { path: 'unido-dev-stub', namespace: 'unido-dev-stub' };
+              return { path: 'unido-dev-hooks', namespace: 'unido-dev-hooks' };
             });
-            build.onLoad({ filter: /.*/, namespace: 'unido-dev-stub' }, () => {
+            build.onLoad({ filter: /.*/, namespace: 'unido-dev-hooks' }, () => {
               return {
-                contents: '// @bandofai/unido-dev stub - hooks are inlined\nexport const useToolOutput = () => undefined;',
+                contents: `
+import { useState, useEffect } from 'react';
+
+// Inline hook implementation that reads from window.openai.toolOutput
+export function useToolOutput() {
+  const [value, setValue] = useState(() => {
+    return typeof window !== 'undefined' && window.openai ? window.openai.toolOutput : undefined;
+  });
+
+  useEffect(() => {
+    const handler = (event) => {
+      if ('toolOutput' in event.detail) {
+        setValue(event.detail.toolOutput);
+      }
+    };
+    window.addEventListener('openai:set_globals', handler);
+    if (typeof window !== 'undefined' && window.openai) {
+      setValue(window.openai.toolOutput);
+    }
+    return () => {
+      window.removeEventListener('openai:set_globals', handler);
+    };
+  }, []);
+
+  return value;
+}
+
+// Export other hooks as no-ops for compatibility
+export const useToolInput = () => undefined;
+export const useDisplayMode = () => undefined;
+export const useTheme = () => undefined;
+export const useMaxHeight = () => undefined;
+export const useLocale = () => undefined;
+export const useWidgetState = () => [undefined, async () => {}];
+export const useToolCall = () => async () => ({ result: undefined });
+export const useSendFollowupTurn = () => async () => {};
+export const useRequestDisplayMode = () => async () => ({ mode: 'inline' });
+export const useOpenExternal = () => () => {};
+export const useOpenAIGlobal = () => undefined;
+export const useOpenAIGlobals = () => ({});
+export const useOpenAIAvailable = () => false;
+`,
                 loader: 'js'
               };
             });
