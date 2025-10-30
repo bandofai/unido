@@ -363,8 +363,7 @@ export function getPostCssConfig(): string {
 }
 
 export function getBasicTemplate(options: TemplateOptions): string {
-  return `import './styles/globals.css';
-import 'dotenv/config';
+  return `import 'dotenv/config';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
@@ -509,8 +508,7 @@ export { app };
 }
 
 export function getWeatherTemplate(options: TemplateOptions): string {
-  return `import './styles/globals.css';
-import 'dotenv/config';
+  return `import 'dotenv/config';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { componentResponse, createApp, textResponse } from '@bandofai/unido-core';
