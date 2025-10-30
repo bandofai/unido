@@ -211,7 +211,8 @@ export const useOpenAIGlobal = () => undefined;
 export const useOpenAIGlobals = () => ({});
 export const useOpenAIAvailable = () => false;
 `,
-                loader: 'js'
+                loader: 'js',
+                resolveDir: rootDir
               };
             });
           },
