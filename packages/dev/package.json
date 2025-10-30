@@ -1,6 +1,6 @@
 {
   "name": "@bandofai/unido-dev",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Unido Dev - Development server and tools for widget development",
   "type": "module",
   "main": "./dist/index.js",

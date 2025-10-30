@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { McpWidgetClient } from '../mcp-client.js';
+import type { ConnectionState } from '../types/mcp-types.js';
 
 /**
  * Props for ToolCallPanel component
@@ -21,6 +22,11 @@ export interface ToolCallPanelProps {
    * Callback when tool call completes
    */
   onToolCall?: (result: { name: string; args: unknown; result: unknown; error?: Error }) => void;
+
+  /**
+   * Callback to show toast notification
+   */
+  onToast?: (message: string, type?: 'info' | 'success' | 'error') => void;
 
   /**
    * Callback when tool call fails
@@ -65,6 +71,7 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
   client,
   onToolCall,
   onError,
+  onToast,
   style,
   className,
 }) => {
@@ -75,6 +82,7 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingTools, setLoadingTools] = useState(false);
+  const [prevConnectionState, setPrevConnectionState] = useState<ConnectionState>('disconnected');
 
   // Load available tools
   const loadTools = async () => {
@@ -87,6 +95,11 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
         name: tool.name,
         description: tool.description,
       })));
+
+      // Show success toast
+      if (toolsList.length > 0 && onToast) {
+        onToast(`${toolsList.length} tool${toolsList.length > 1 ? 's' : ''} loaded successfully`, 'success');
+      }
     } catch (err) {
       console.error('Failed to load tools:', err);
       setTools([]);
@@ -95,9 +108,21 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
     }
   };
 
+  // Monitor connection state and auto-load tools on connection
   useEffect(() => {
-    loadTools();
-  }, [client]);
+    const interval = setInterval(() => {
+      const currentState = client.getConnectionState();
+
+      // Detect transition to 'connected' state and auto-load tools
+      if (currentState === 'connected' && prevConnectionState !== 'connected' && tools.length === 0) {
+        loadTools();
+      }
+
+      setPrevConnectionState(currentState);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [client, prevConnectionState, tools.length]);
 
   // Execute tool call
   const handleExecute = async () => {
@@ -179,7 +204,20 @@ export const ToolCallPanel: React.FC<ToolCallPanelProps> = ({
         <label style={{ fontSize: '13px', fontWeight: 500, color: '#475569' }}>
           Tool Name
         </label>
-        {tools.length > 0 ? (
+        {loadingTools && tools.length === 0 ? (
+          <select
+            disabled
+            style={{
+              padding: '8px',
+              fontSize: '14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: '4px',
+              color: '#94a3b8',
+            }}
+          >
+            <option>Loading tools...</option>
+          </select>
+        ) : tools.length > 0 ? (
           <select
             value={selectedTool}
             onChange={(e) => setSelectedTool(e.target.value)}

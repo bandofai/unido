@@ -14,6 +14,7 @@ import { ToolCallPanel } from '@bandofai/unido-dev/components/ToolCallPanel';
 import { LogPanel } from '@bandofai/unido-dev/components/LogPanel';
 import type { LogEntry } from '@bandofai/unido-dev/components/LogPanel';
 import type { PropSchema } from '@bandofai/unido-core';
+import { ToastProvider, useToast } from '@bandofai/unido-dev/utils/toast';
 
 interface ComponentInfo {
   type: string;
@@ -27,7 +28,8 @@ type LoadMode = 'direct' | 'mcp';
 
 const STORAGE_KEY = 'unido:preview:loadMode';
 
-const App = () => {
+const AppContent = () => {
+  const { showToast } = useToast();
   const [selectedComponent, setSelectedComponent] = useState<ComponentInfo | null>(
     componentData[0] || null
   );
@@ -104,8 +106,36 @@ const App = () => {
     addLog('debug', 'Performance', metric);
   }, [addLog]);
 
-  const handleToolCall = useCallback((name: string, args: unknown, result: unknown) => {
-    addLog('info', `Tool call: ${name}`, { args, result });
+  const handleToolCall = useCallback((result: {
+    name: string;
+    args: unknown;
+    result: unknown;
+    error?: Error;
+  }) => {
+    addLog('info', `Tool call: ${result.name}`, { args: result.args, result: result.result });
+
+    // Handle errors
+    if (result.error) {
+      addLog('error', `Tool call failed: ${result.name}`, result.error);
+      return; // Don't update props on error
+    }
+
+    // Validate result is a plain object
+    if (
+      typeof result.result === 'object' &&
+      result.result !== null &&
+      !Array.isArray(result.result)
+    ) {
+      // Valid object - update props
+      setProps(result.result as Record<string, any>);
+      addLog('info', 'Preview props updated from tool result');
+    } else {
+      // Invalid result format
+      addLog('error', 'Tool result is not a valid props object', {
+        type: typeof result.result,
+        value: result.result,
+      });
+    }
   }, [addLog]);
 
   const handleClearLogs = useCallback(() => {
@@ -266,6 +296,7 @@ const App = () => {
                     client={mcpClient}
                     onToolCall={handleToolCall}
                     onError={handleWidgetError}
+                    onToast={showToast}
                   />
                 </div>
               )}
@@ -303,6 +334,14 @@ const App = () => {
         </main>
       </div>
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 };
 

@@ -30,7 +30,7 @@ export function getPackageJson(options: TemplateOptions): Record<string, unknown
       '@bandofai/unido-core': '^0.1.12',
       '@bandofai/unido-provider-openai': '^0.1.19',
       '@bandofai/unido-components': '^0.2.8',
-      '@bandofai/unido-dev': '^0.1.11',
+      '@bandofai/unido-dev': '^0.1.12',
       dotenv: '^16.4.7',
       react: '^18.3.1',
       'react-dom': '^18.3.1',
