@@ -28,7 +28,7 @@ export function getPackageJson(options: TemplateOptions): Record<string, unknown
     },
     dependencies: {
       '@bandofai/unido-core': '^0.1.12',
-      '@bandofai/unido-provider-openai': '^0.1.19',
+      '@bandofai/unido-provider-openai': '^0.1.20',
       '@bandofai/unido-components': '^0.2.8',
       '@bandofai/unido-dev': '^0.1.14',
       dotenv: '^16.4.7',

@@ -56,6 +56,33 @@ import Component from ${JSON.stringify(absolutePath)};
 
 type ComponentProps = Record<string, unknown>;
 
+// Inline hook implementations to avoid bundling @bandofai/unido-dev
+// This prevents Node.js dependencies from being included in browser bundle
+const { useState: reactUseState, useEffect: reactUseEffect } = React;
+
+function useToolOutput<T = unknown>(): T | undefined {
+  const [value, setValue] = reactUseState<T | undefined>(() => {
+    return typeof window !== 'undefined' && window.openai ? (window.openai.toolOutput as T) : undefined;
+  });
+
+  reactUseEffect(() => {
+    const handler = (event: CustomEvent) => {
+      if ('toolOutput' in event.detail) {
+        setValue(event.detail.toolOutput as T);
+      }
+    };
+    window.addEventListener('openai:set_globals', handler as EventListener);
+    if (typeof window !== 'undefined' && window.openai) {
+      setValue(window.openai.toolOutput as T);
+    }
+    return () => {
+      window.removeEventListener('openai:set_globals', handler as EventListener);
+    };
+  }, []);
+
+  return value;
+}
+
 // TypeScript declarations for OpenAI Apps SDK
 // Complete window.openai API specification
 declare global {
@@ -146,6 +173,11 @@ if (rootElement) {
       sourcemap: false,
       minify: true,
       logLevel: 'silent',
+      external: [
+        // Exclude dev dependencies from browser bundle
+        '@bandofai/unido-dev',
+        '@bandofai/unido-dev/*',
+      ],
       define: {
         'process.env.NODE_ENV': '"production"',
       },
