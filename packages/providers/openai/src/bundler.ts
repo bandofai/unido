@@ -145,35 +145,17 @@ const getProps = (): ComponentProps => {
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  let currentProps = getProps();
 
   const render = (nextProps: ComponentProps) => {
-    currentProps = nextProps;
     root.render(React.createElement(Component, nextProps));
   };
 
-  const renderFromGlobals = (nextProps?: ComponentProps) => {
-    if (nextProps && typeof nextProps === 'object') {
-      render(nextProps);
-      return;
-    }
-    render(getProps());
-  };
-
   // Initial render
-  render(currentProps);
+  render(getProps());
 
   // Listen for OpenAI globals updates
-  window.addEventListener('openai:set_globals', (event: CustomEvent<{ toolOutput?: ComponentProps }>) => {
-    renderFromGlobals(event?.detail?.toolOutput as ComponentProps | undefined);
-  });
-
-  // Update when tool responses arrive (e.g., callTool)
-  window.addEventListener('openai:tool_response', (event: CustomEvent<{ result?: unknown }>) => {
-    const result = event?.detail?.result;
-    if (result && typeof result === 'object') {
-      render(result as ComponentProps);
-    }
+  window.addEventListener('openai:set_globals', () => {
+    render(getProps());
   });
 }
 `;
@@ -232,26 +214,17 @@ export function useToolOutput() {
   });
 
   useEffect(() => {
-    const handleGlobals = (event) => {
-      if (event?.detail && 'toolOutput' in event.detail) {
+    const handler = (event) => {
+      if ('toolOutput' in event.detail) {
         setValue(event.detail.toolOutput);
       }
     };
-    const handleToolResponse = (event) => {
-      if (event?.detail && 'result' in event.detail) {
-        setValue(event.detail.result);
-      }
-    };
-
-    window.addEventListener('openai:set_globals', handleGlobals);
-    window.addEventListener('openai:tool_response', handleToolResponse);
-
-    if (typeof window !== 'undefined' && window.openai && window.openai.toolOutput) {
+    window.addEventListener('openai:set_globals', handler);
+    if (typeof window !== 'undefined' && window.openai) {
       setValue(window.openai.toolOutput);
     }
     return () => {
-      window.removeEventListener('openai:set_globals', handleGlobals);
-      window.removeEventListener('openai:tool_response', handleToolResponse);
+      window.removeEventListener('openai:set_globals', handler);
     };
   }, []);
 
