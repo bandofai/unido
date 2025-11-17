@@ -468,7 +468,10 @@ const app = createApp({
   name: '${options.projectName}',
   version: '1.0.0',
   providers: {
-    openai: openAI({ port: Number(process.env.UNIDO_OPENAI_PORT) || 3000 })
+    openai: openAI({
+      port: Number(process.env.UNIDO_OPENAI_PORT) || 3000,
+      watch: true, // Enable HMR for components and CSS files
+    })
   },
 });
 
@@ -644,7 +647,10 @@ const app = createApp({
   name: '${options.projectName}',
   version: '1.0.0',
   providers: {
-    openai: openAI({ port: Number(process.env.UNIDO_OPENAI_PORT) || 3000 })
+    openai: openAI({
+      port: Number(process.env.UNIDO_OPENAI_PORT) || 3000,
+      watch: true, // Enable HMR for components and CSS files
+    })
   },
 });
 

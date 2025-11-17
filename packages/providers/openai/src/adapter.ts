@@ -684,26 +684,57 @@ export class OpenAIAdapter extends BaseProviderAdapter {
    */
   private async startWatching(components: ComponentDefinition[]): Promise<void> {
     const chokidar = await import('chokidar');
-    const paths = components.map((c) => c.sourcePath);
+    const path = await import('node:path');
+
+    // Watch component source files
+    const componentPaths = components.map((c) => c.sourcePath);
+
+    // Also watch CSS files that affect bundling
+    const watchPaths = [...componentPaths];
+
+    // Add app's globals.css if it exists
+    const appGlobalsCss = path.join(process.cwd(), 'src/styles/globals.css');
+    watchPaths.push(appGlobalsCss);
+
+    // Add components package globals.css
+    try {
+      const { createRequire } = await import('node:module');
+      const { pathToFileURL } = await import('node:url');
+      const require = createRequire(pathToFileURL(path.join(process.cwd(), 'package.json')).href);
+      const componentsGlobalsCss = require.resolve('@bandofai/unido-components/globals.css');
+      watchPaths.push(componentsGlobalsCss);
+    } catch {
+      // Components package not installed or globals.css not found
+    }
 
     this.logger.info('Starting file watcher', {
-      componentsCount: paths.length,
-      paths: paths,
+      componentsCount: components.length,
+      watchedPaths: watchPaths.length,
     });
 
-    const watcher = chokidar.watch(paths, {
+    const watcher = chokidar.watch(watchPaths, {
       persistent: true,
       ignoreInitial: true,
     });
 
     watcher.on('change', async (changedPath) => {
+      // Check if it's a component source file
       const component = components.find((c) => c.sourcePath === changedPath);
       if (component) {
-        this.logger.info('Component file changed', {
+        this.logger.info('Component file changed, rebundling', {
           componentType: component.type,
           path: changedPath,
         });
         await this.rebundleComponent(component);
+        return;
+      }
+
+      // If it's a CSS file, rebundle all components
+      if (changedPath.endsWith('.css')) {
+        this.logger.info('CSS file changed, rebundling all components', {
+          path: changedPath,
+        });
+        await this.rebundleAllComponents(components);
       }
     });
 
@@ -755,6 +786,50 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       });
     } catch (error) {
       this.logger.error('Error rebundling component', error, { componentType: component.type });
+    }
+  }
+
+  /**
+   * Rebundle all components (used when CSS files change)
+   */
+  private async rebundleAllComponents(components: ComponentDefinition[]): Promise<void> {
+    try {
+      this.logger.info('Rebundling all components', { count: components.length });
+
+      // Rebundle all components
+      const bundles = await bundleComponents(components);
+
+      // Update all component resources
+      for (const component of components) {
+        const bundled = bundles.get(component.type);
+        if (!bundled) {
+          this.logger.warn('Component not found in bundle results', { componentType: component.type });
+          continue;
+        }
+
+        const dataUrl = this.createModuleDataUrl(bundled.code);
+        const html = generateComponentHtml(dataUrl, component.type);
+        const resource = createComponentResource(component, dataUrl);
+        const metadata = this.createComponentOpenAIMetadata(component);
+
+        const entry: ComponentResourceEntry = {
+          definition: component,
+          bundle: bundled,
+          resource,
+          metadata,
+          html,
+          dataUrl,
+        };
+
+        this.componentResourcesByUri.set(resource.uri, entry);
+        this.componentResourcesByType.set(component.type, entry);
+      }
+
+      this.logger.info('All components rebundled successfully', {
+        count: components.length,
+      });
+    } catch (error) {
+      this.logger.error('Error rebundling all components', error);
     }
   }
 
