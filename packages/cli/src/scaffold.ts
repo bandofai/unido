@@ -13,6 +13,7 @@ import {
   getEnvExample,
   getGitignore,
   getGlobalsCss,
+  getWeatherGlobalsCss,
   getNpmrc,
   getPackageJson,
   getPostCssConfig,
@@ -107,7 +108,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
 
   // Write CSS files
   console.log(chalk.gray('  Writing src/styles/globals.css...'));
-  const globalsCss = getGlobalsCss();
+  const globalsCss = template === 'weather' ? getWeatherGlobalsCss() : getGlobalsCss();
   await writeFile(join(projectPath, 'src', 'styles', 'globals.css'), globalsCss);
 
   // Write PostCSS config

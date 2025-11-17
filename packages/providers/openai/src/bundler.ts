@@ -7,6 +7,7 @@ import { build, type OnLoadArgs, type PluginBuild } from 'esbuild';
 import type { ComponentDefinition } from '@bandofai/unido-core';
 
 import { promises as fs } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -32,30 +33,61 @@ export async function bundleComponents(
   components: ComponentDefinition[],
   options: BundleComponentsOptions = {},
 ): Promise<Map<string, BundledComponent>> {
+  const require = createRequire(import.meta.url);
   const results = new Map<string, BundledComponent>();
   const rootDir = options.rootDir ? path.resolve(options.rootDir) : process.cwd();
   let postcssProcessor: import('postcss').Processor | null = null;
   let postcssWarningLogged = false;
 
-  const ensurePostcssProcessor = async (): Promise<import('postcss').Processor | null> => {
+  const ensurePostcssProcessor = async (rootDir: string): Promise<import('postcss').Processor | null> => {
     if (postcssProcessor) {
       return postcssProcessor;
     }
 
     try {
-      const [{ default: postcss }, { default: tailwindcss }, { default: autoprefixer }] =
+      const [{ default: postcss }, { default: postcssImport }, { default: tailwindcss }, { default: autoprefixer }] =
         await Promise.all([
           import('postcss'),
+          import('postcss-import'),
           import('@tailwindcss/postcss'),
           import('autoprefixer'),
         ]);
 
-      postcssProcessor = postcss([tailwindcss(), autoprefixer()]);
+      // Configure postcss-import with custom resolver for node_modules packages
+      // IMPORTANT: Create require from rootDir, not from this package's location
+      const rootDirRequire = createRequire(pathToFileURL(path.join(rootDir, 'package.json')).href);
+      postcssProcessor = postcss([
+        postcssImport({
+          filter: (id: string) => {
+            // Skip Tailwind v4's special @import directives - let @tailwindcss/postcss handle them
+            if (id === 'tailwindcss' || id.startsWith('tailwindcss/')) {
+              return false;
+            }
+            return true;
+          },
+          resolve: (id: string, basedir: string) => {
+            // Handle package imports like @bandofai/unido-components/globals.css
+            if (id.startsWith('@') || !id.startsWith('.')) {
+              try {
+                // Resolve from the app's node_modules, not the provider's
+                return rootDirRequire.resolve(id, { paths: [basedir, rootDir] });
+              } catch {
+                // Fallback to default resolution
+                return path.resolve(basedir, id);
+              }
+            }
+            // Handle relative paths normally
+            return path.resolve(basedir, id);
+          },
+        }),
+        tailwindcss(),
+        autoprefixer(),
+      ]);
       return postcssProcessor;
     } catch (error) {
       if (!postcssWarningLogged) {
         console.warn(
-          'Tailwind/PostCSS pipeline unavailable. Install tailwindcss@^4 and @tailwindcss/postcss in your app to bundle component styles.',
+          'Tailwind/PostCSS pipeline unavailable. Install tailwindcss@^4, @tailwindcss/postcss, and postcss-import in your app to bundle component styles.',
           error,
         );
         postcssWarningLogged = true;
@@ -167,12 +199,54 @@ if (rootElement) {
 
     // Create a temporary CSS file that tells Tailwind v4 to scan the component
     const tempCssPath = path.join(tmpDir, `${component.type}-tailwind.css`);
-    const tempCssContent = `@import "@bandofai/unido-components/globals.css";
-@source "${absolutePath}";
-@source "${entryPath}";`;
+    const sourceGlobs = [absolutePath, entryPath];
+
+    // Also scan the Unido components package so utility classes used inside
+    // shared UI primitives (Card, Button, etc.) are generated.
+    const componentsPackageRoot = await resolvePackageRoot(
+      require,
+      '@bandofai/unido-components/package.json',
+      rootDir,
+    );
+
+    if (componentsPackageRoot) {
+      const candidateSourceRoots = [
+        path.join(componentsPackageRoot, 'src'),
+        path.join(componentsPackageRoot, 'dist'),
+      ];
+
+      for (const candidate of candidateSourceRoots) {
+        if (await pathExists(candidate)) {
+          sourceGlobs.push(path.join(candidate, '**/*.{js,jsx,ts,tsx}'));
+        }
+      }
+    }
+
+    // Check if the app has its own globals.css for layering, otherwise use the component library's
+    const appGlobalsCssPath = path.join(rootDir, 'src/styles/globals.css');
+    const hasAppGlobalsCss = await pathExists(appGlobalsCssPath);
+
+    // For Tailwind v4: @source directives must be in the same file as theme definitions
+    // to ensure proper theme merging. We create a comprehensive entry CSS file that:
+    // 1. Imports the app's globals.css (which imports component library's globals.css)
+    // 2. Adds @source directives AFTER imports so themes are merged first
+    const tempCssContent = hasAppGlobalsCss
+      ? [
+          `@import "${appGlobalsCssPath}";`,
+          '',
+          '/* Scan these files for Tailwind utility classes */',
+          ...sourceGlobs.map((source) => `@source "${source}";`),
+        ].join('\n')
+      : [
+          '@import "@bandofai/unido-components/globals.css";',
+          '',
+          '/* Scan these files for Tailwind utility classes */',
+          ...sourceGlobs.map((source) => `@source "${source}";`),
+        ].join('\n');
+
     await fs.writeFile(tempCssPath, tempCssContent, 'utf8');
 
-    const processor = await ensurePostcssProcessor();
+    const processor = await ensurePostcssProcessor(rootDir);
 
     const outfile = path.join(tmpDir, `${component.type}-bundle.js`);
 
@@ -331,5 +405,27 @@ async function assertFileExists(filePath: string, componentType: string): Promis
     throw new Error(
       `Component "${componentType}" source not found at ${filePath} (${fileUrl}). Ensure the path is correct when calling app.component().`,
     );
+  }
+}
+
+async function resolvePackageRoot(
+  requireFn: ReturnType<typeof createRequire>,
+  specifier: string,
+  rootDir: string,
+): Promise<string | null> {
+  try {
+    const resolved = requireFn.resolve(specifier, { paths: [rootDir] });
+    return path.dirname(resolved);
+  } catch {
+    return null;
+  }
+}
+
+async function pathExists(candidate: string): Promise<boolean> {
+  try {
+    await fs.access(candidate);
+    return true;
+  } catch {
+    return false;
   }
 }

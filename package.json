@@ -19,8 +19,8 @@
     "cli:link": "cd packages/cli && pnpm link --global",
     "cli:unlink": "pnpm unlink --global create-unido",
     "cli:test": "node packages/cli/dist/index.js",
-    "test:basic": "rm -rf test-basic-app && node packages/cli/dist/index.js test-basic-app --template basic --skip-git && cd test-basic-app && pnpm install --ignore-workspace",
-    "test:weather": "rm -rf test-weather-app && node packages/cli/dist/index.js test-weather-app --template weather --skip-git && cd test-weather-app && pnpm install --ignore-workspace"
+    "test:basic": "rm -rf test-basic-app && node packages/cli/dist/index.js test-basic-app --template basic --skip-git && cd test-basic-app && pnpm add @bandofai/unido-core@workspace:* @bandofai/unido-provider-openai@workspace:* @bandofai/unido-components@workspace:* @bandofai/unido-dev@workspace:* && pnpm install",
+    "test:weather": "rm -rf test-weather-app && node packages/cli/dist/index.js test-weather-app --template weather --skip-git && cd test-weather-app && pnpm add @bandofai/unido-core@workspace:* @bandofai/unido-provider-openai@workspace:* @bandofai/unido-components@workspace:* @bandofai/unido-dev@workspace:* && pnpm install"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",
