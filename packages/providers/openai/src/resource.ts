@@ -69,8 +69,8 @@ export function generateComponentHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${componentType}</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     #root { width: 100%; height: 100vh; }
   </style>
 </head>
