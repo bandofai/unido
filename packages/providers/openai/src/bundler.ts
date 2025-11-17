@@ -79,7 +79,7 @@ export async function bundleComponents(
 
     // Create a temporary entry file that initializes React
     const entryContent = `
-import '@bandofai/unido-components/globals.css';
+import ${JSON.stringify(`./${component.type}-tailwind.css`)};
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Component from ${JSON.stringify(absolutePath)};
@@ -164,6 +164,13 @@ if (rootElement) {
     await fs.mkdir(tmpDir, { recursive: true });
     const entryPath = path.join(tmpDir, `${component.type}-entry.tsx`);
     await fs.writeFile(entryPath, entryContent, 'utf8');
+
+    // Create a temporary CSS file that tells Tailwind v4 to scan the component
+    const tempCssPath = path.join(tmpDir, `${component.type}-tailwind.css`);
+    const tempCssContent = `@import "@bandofai/unido-components/globals.css";
+@source "${absolutePath}";
+@source "${entryPath}";`;
+    await fs.writeFile(tempCssPath, tempCssContent, 'utf8');
 
     const processor = await ensurePostcssProcessor();
 
@@ -277,8 +284,9 @@ export const useOpenAIAvailable = () => false;
       ],
     });
 
-    // Clean up temp file
+    // Clean up temp files
     await fs.unlink(entryPath).catch(() => {});
+    await fs.unlink(tempCssPath).catch(() => {});
 
     const output = bundle.outputFiles?.[0];
     if (!output) {
