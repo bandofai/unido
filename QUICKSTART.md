@@ -1,4 +1,10 @@
+<div align="center">
+
+<img src="docs/logo.png" alt="Unido Logo" width="150" />
+
 # Unido Development Quick Start
+
+</div>
 
 ## Initial Setup (Once)
 

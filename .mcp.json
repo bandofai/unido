@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "mcp-sequentialthinking-tools": {
+      "command": "npx",
+      "args": ["-y", "mcp-sequentialthinking-tools"],
+      "description": "Structured, step-by-step problem-solving and reasoning",
+      "env": {
+        "MAX_HISTORY_SIZE": "1000"
+      }
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/Users/tomas.kavka/www/heyho"
+      ],
+      "description": "Semantic code retrieval and editing with LSP-powered symbol navigation",
+      "env": {}
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "Up-to-date code documentation and examples from current sources"
+    }
+  }
+}

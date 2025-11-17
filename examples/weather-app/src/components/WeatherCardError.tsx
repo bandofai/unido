@@ -19,7 +19,7 @@ export interface WeatherCardErrorProps {
   details?: string;
 }
 
-export const WeatherCardError: FC<WeatherCardErrorProps> = ({
+const WeatherCardError: FC<WeatherCardErrorProps> = ({
   city,
   error,
   code,
@@ -72,3 +72,5 @@ export const WeatherCardError: FC<WeatherCardErrorProps> = ({
     </Card>
   );
 };
+
+export default WeatherCardError;

@@ -1,6 +1,12 @@
+<div align="center">
+
+<img src="../../docs/logo.png" alt="Unido Logo" width="150" />
+
 # create-unido
 
 **The fastest way to create a new Unido application.**
+
+</div>
 
 [![npm version](https://img.shields.io/npm/v/create-unido)](https://www.npmjs.com/package/create-unido)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)

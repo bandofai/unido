@@ -140,7 +140,7 @@ app.component({
   description: 'Generic loading spinner component.',
   sourcePath: fileURLToPath(
     new URL(
-      '../../node_modules/@bandofai/unido-components/dist/components/ui/loading-spinner.js',
+      '../node_modules/@bandofai/unido-components/dist/components/ui/loading-spinner.js',
       import.meta.url
     )
   ),
@@ -152,7 +152,7 @@ app.component({
   description: 'Generic loading skeleton component.',
   sourcePath: fileURLToPath(
     new URL(
-      '../../node_modules/@bandofai/unido-components/dist/components/ui/loading-skeleton.js',
+      '../node_modules/@bandofai/unido-components/dist/components/ui/loading-skeleton.js',
       import.meta.url
     )
   ),
@@ -164,7 +164,7 @@ app.component({
   description: 'Generic error card component.',
   sourcePath: fileURLToPath(
     new URL(
-      '../../node_modules/@bandofai/unido-components/dist/components/ui/error-card.js',
+      '../node_modules/@bandofai/unido-components/dist/components/ui/error-card.js',
       import.meta.url
     )
   ),

@@ -16,7 +16,7 @@ const program = new Command();
 program
   .name('create-unido')
   .description('Create a new Unido AI application')
-  .version('0.6.24')
+  .version('0.6.25')
   .argument('[project-name]', 'Name of the project to create')
   .option('-t, --template <template>', 'Template to use (basic, weather)')
   .option('--skip-install', 'Skip npm install')
@@ -116,48 +116,6 @@ program
       console.error(error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
-  });
-
-// Widget development commands
-const widget = program.command('widget').description('Widget development tools');
-
-widget
-  .command('dev')
-  .description('Start widget development server with hot reload')
-  .option('-p, --port <port>', 'Port for dev server', '5173')
-  .action((options) => {
-    console.log(chalk.cyan.bold('\n🎨 Widget Development Server\n'));
-    console.log(chalk.yellow('⚠️  This command should be run from your project directory'));
-    console.log(chalk.white('\nAdd to your project:\n'));
-    console.log(chalk.cyan('  // src/widget-dev.ts'));
-    console.log(chalk.white("  import { startWidgetServer } from '@bandofai/unido-dev';"));
-    console.log(chalk.white("  import { app } from './index.js';\n"));
-    console.log(chalk.white('  await startWidgetServer({'));
-    console.log(chalk.white('    components: app.getComponents(),'));
-    console.log(chalk.white(`    port: ${options.port},`));
-    console.log(chalk.white('    open: true,'));
-    console.log(chalk.white('  });\n'));
-    console.log(chalk.white('Then run: pnpm run widget:dev\n'));
-  });
-
-widget
-  .command('preview')
-  .description('Preview widgets in browser')
-  .action(() => {
-    console.log(chalk.cyan.bold('\n👁️  Widget Preview\n'));
-    console.log(chalk.yellow('Use the "widget dev" command for interactive preview'));
-    console.log(
-      chalk.white('Or add @bandofai/unido-dev to your project and call startWidgetServer()\n')
-    );
-  });
-
-widget
-  .command('gallery')
-  .description('View all widgets in gallery mode')
-  .action(() => {
-    console.log(chalk.cyan.bold('\n🖼️  Widget Gallery\n'));
-    console.log(chalk.yellow('Start widget dev server and switch to gallery mode'));
-    console.log(chalk.white('Run: pnpm run widget:dev\n'));
   });
 
 program.parse();

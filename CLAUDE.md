@@ -1,6 +1,12 @@
+<div align="center">
+
+<img src="docs/logo.png" alt="Unido Logo" width="150" />
+
 # CLAUDE.md
 
 **Context for Claude Code (claude.ai/code)** when working with this repository.
+
+</div>
 
 ---
 

@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "widget:dev": "tsx src/widget-dev.ts"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@bandofai/unido-core": "workspace:*",

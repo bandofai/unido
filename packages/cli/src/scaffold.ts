@@ -20,7 +20,6 @@ import {
   getTsConfig,
   getWeatherComponentSource,
   getWeatherTemplate,
-  getWidgetDevScript,
 } from './templates.js';
 
 const execAsync = promisify(exec);
@@ -115,11 +114,6 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<void> {
   console.log(chalk.gray('  Writing postcss.config.js...'));
   const postCssConfig = getPostCssConfig();
   await writeFile(join(projectPath, 'postcss.config.js'), postCssConfig);
-
-  // Write widget dev script
-  console.log(chalk.gray('  Writing src/widget-dev.ts...'));
-  const widgetDevScript = getWidgetDevScript();
-  await writeFile(join(projectPath, 'src', 'widget-dev.ts'), widgetDevScript);
 
   // Write main application file based on template
   console.log(chalk.gray(`  Writing ${template} template...`));

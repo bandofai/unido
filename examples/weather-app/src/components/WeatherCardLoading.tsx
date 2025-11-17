@@ -11,7 +11,7 @@ export interface WeatherCardLoadingProps {
   message?: string;
 }
 
-export const WeatherCardLoading: FC<WeatherCardLoadingProps> = ({ city, message }) => {
+const WeatherCardLoading: FC<WeatherCardLoadingProps> = ({ city, message }) => {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -33,3 +33,5 @@ export const WeatherCardLoading: FC<WeatherCardLoadingProps> = ({ city, message 
     </Card>
   );
 };
+
+export default WeatherCardLoading;

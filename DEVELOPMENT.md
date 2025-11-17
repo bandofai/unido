@@ -1,4 +1,10 @@
+<div align="center">
+
+<img src="docs/logo.png" alt="Unido Logo" width="150" />
+
 # Local Development Guide
+
+</div>
 
 This guide explains how to develop and test `create-unido` and all other packages locally.
 

@@ -21,7 +21,6 @@ export function getPackageJson(options: TemplateOptions): Record<string, unknown
       dev: 'node --import tsx src/index.ts',
       start: 'node dist/index.js',
       'type-check': 'tsc --noEmit',
-      'widget:dev': 'node --import tsx src/widget-dev.ts',
       inspect:
         'npx @modelcontextprotocol/inspector http://localhost:3000/sse --transport sse --method tools/list',
       tunnel: 'ngrok http 3000',
@@ -809,40 +808,3 @@ UNIDO_MCP_SERVER_URL=http://localhost:3000
 `;
 }
 
-export function getWidgetDevScript(): string {
-  return `/**
- * Widget development server
- * Run with: pnpm run widget:dev
- */
-
-import { startWidgetServer } from '@bandofai/unido-dev';
-import { app } from './index.js';
-
-async function main() {
-  console.log('🎨 Starting widget development server...\\n');
-
-  const server = await startWidgetServer({
-    components: app.getComponents(),
-    port: 5173,
-    open: true,
-    verbose: true,
-    // MCP server URL - change this to test with different MCP servers
-    // You can also change it in the UI when running the widget dev server
-    serverUrl: process.env.UNIDO_MCP_SERVER_URL || 'http://localhost:3000',
-  });
-
-  console.log(\`✅ Widget preview running at \${server.url}\\n\`);
-  console.log('Features:');
-  console.log('  🔥 Hot Module Replacement (HMR)');
-  console.log('  🎯 Interactive prop editor');
-  console.log('  🖼️  Gallery view for all components');
-  console.log('  ⚠️  Error boundaries with helpful messages\\n');
-  console.log('Press Ctrl+C to stop\\n');
-}
-
-main().catch((error) => {
-  console.error('Failed to start widget server:', error);
-  process.exit(1);
-});
-`;
-}

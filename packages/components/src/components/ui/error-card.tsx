@@ -99,3 +99,4 @@ const ErrorCard = React.forwardRef<HTMLDivElement, ErrorCardProps>(
 ErrorCard.displayName = 'ErrorCard';
 
 export { ErrorCard };
+export default ErrorCard;

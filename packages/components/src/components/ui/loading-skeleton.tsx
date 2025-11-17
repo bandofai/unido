@@ -52,3 +52,4 @@ const LoadingSkeleton = React.forwardRef<HTMLDivElement, LoadingSkeletonProps>(
 LoadingSkeleton.displayName = 'LoadingSkeleton';
 
 export { LoadingSkeleton };
+export default LoadingSkeleton;

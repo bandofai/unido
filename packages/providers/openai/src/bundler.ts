@@ -2,7 +2,7 @@
  * Bundles registered components for delivery to OpenAI widgets.
  */
 
-import { build } from 'esbuild';
+import { build, type OnLoadArgs, type PluginBuild } from 'esbuild';
 
 import type { ComponentDefinition } from '@bandofai/unido-core';
 
@@ -34,6 +34,35 @@ export async function bundleComponents(
 ): Promise<Map<string, BundledComponent>> {
   const results = new Map<string, BundledComponent>();
   const rootDir = options.rootDir ? path.resolve(options.rootDir) : process.cwd();
+  let postcssProcessor: import('postcss').Processor | null = null;
+  let postcssWarningLogged = false;
+
+  const ensurePostcssProcessor = async (): Promise<import('postcss').Processor | null> => {
+    if (postcssProcessor) {
+      return postcssProcessor;
+    }
+
+    try {
+      const [{ default: postcss }, { default: tailwindcss }, { default: autoprefixer }] =
+        await Promise.all([
+          import('postcss'),
+          import('@tailwindcss/postcss'),
+          import('autoprefixer'),
+        ]);
+
+      postcssProcessor = postcss([tailwindcss(), autoprefixer()]);
+      return postcssProcessor;
+    } catch (error) {
+      if (!postcssWarningLogged) {
+        console.warn(
+          'Tailwind/PostCSS pipeline unavailable. Install tailwindcss@^4 and @tailwindcss/postcss in your app to bundle component styles.',
+          error,
+        );
+        postcssWarningLogged = true;
+      }
+      return null;
+    }
+  };
 
   for (const component of components) {
     const absolutePath = path.isAbsolute(component.sourcePath)
@@ -50,6 +79,7 @@ export async function bundleComponents(
 
     // Create a temporary entry file that initializes React
     const entryContent = `
+import '@bandofai/unido-components/globals.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Component from ${JSON.stringify(absolutePath)};
@@ -115,17 +145,35 @@ const getProps = (): ComponentProps => {
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = createRoot(rootElement);
+  let currentProps = getProps();
 
   const render = (nextProps: ComponentProps) => {
+    currentProps = nextProps;
     root.render(React.createElement(Component, nextProps));
   };
 
+  const renderFromGlobals = (nextProps?: ComponentProps) => {
+    if (nextProps && typeof nextProps === 'object') {
+      render(nextProps);
+      return;
+    }
+    render(getProps());
+  };
+
   // Initial render
-  render(getProps());
+  render(currentProps);
 
   // Listen for OpenAI globals updates
-  window.addEventListener('openai:set_globals', () => {
-    render(getProps());
+  window.addEventListener('openai:set_globals', (event: CustomEvent<{ toolOutput?: ComponentProps }>) => {
+    renderFromGlobals(event?.detail?.toolOutput as ComponentProps | undefined);
+  });
+
+  // Update when tool responses arrive (e.g., callTool)
+  window.addEventListener('openai:tool_response', (event: CustomEvent<{ result?: unknown }>) => {
+    const result = event?.detail?.result;
+    if (result && typeof result === 'object') {
+      render(result as ComponentProps);
+    }
   });
 }
 `;
@@ -135,10 +183,15 @@ if (rootElement) {
     const entryPath = path.join(tmpDir, `${component.type}-entry.tsx`);
     await fs.writeFile(entryPath, entryContent, 'utf8');
 
+    const processor = await ensurePostcssProcessor();
+
+    const outfile = path.join(tmpDir, `${component.type}-bundle.js`);
+
     const bundle = await build({
       entryPoints: [entryPath],
       bundle: true,
       write: false,
+      outfile,
       platform: 'browser',
       format: 'iife',
       target: ['es2020'],
@@ -179,17 +232,26 @@ export function useToolOutput() {
   });
 
   useEffect(() => {
-    const handler = (event) => {
-      if ('toolOutput' in event.detail) {
+    const handleGlobals = (event) => {
+      if (event?.detail && 'toolOutput' in event.detail) {
         setValue(event.detail.toolOutput);
       }
     };
-    window.addEventListener('openai:set_globals', handler);
-    if (typeof window !== 'undefined' && window.openai) {
+    const handleToolResponse = (event) => {
+      if (event?.detail && 'result' in event.detail) {
+        setValue(event.detail.result);
+      }
+    };
+
+    window.addEventListener('openai:set_globals', handleGlobals);
+    window.addEventListener('openai:tool_response', handleToolResponse);
+
+    if (typeof window !== 'undefined' && window.openai && window.openai.toolOutput) {
       setValue(window.openai.toolOutput);
     }
     return () => {
-      window.removeEventListener('openai:set_globals', handler);
+      window.removeEventListener('openai:set_globals', handleGlobals);
+      window.removeEventListener('openai:tool_response', handleToolResponse);
     };
   }, []);
 
@@ -212,11 +274,33 @@ export const useOpenAIGlobals = () => ({});
 export const useOpenAIAvailable = () => false;
 `,
                 loader: 'js',
-                resolveDir: rootDir
+                resolveDir: rootDir,
               };
             });
           },
         },
+        ...(processor
+          ? [
+              {
+                name: 'unido-postcss',
+                setup(build: PluginBuild) {
+                  build.onLoad({ filter: /\.css$/ }, async (args: OnLoadArgs) => {
+                    const source = await fs.readFile(args.path, 'utf8');
+                    const result = await processor.process(source, {
+                      from: args.path,
+                      map: false,
+                    });
+
+                    return {
+                      contents: result.css,
+                      loader: 'css',
+                      resolveDir: path.dirname(args.path),
+                    };
+                  });
+                },
+              },
+            ]
+          : []),
       ],
     });
 

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.png" alt="Unido Logo" width="200" />
+
 # 🌐 Unido
 
 ### Build AI tools once. Deploy everywhere.
