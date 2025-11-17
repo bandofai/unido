@@ -288,12 +288,28 @@ export const useOpenAIAvailable = () => false;
     await fs.unlink(entryPath).catch(() => {});
     await fs.unlink(tempCssPath).catch(() => {});
 
-    const output = bundle.outputFiles?.[0];
-    if (!output) {
+    if (!bundle.outputFiles || bundle.outputFiles.length === 0) {
       throw new Error(`Failed to bundle component "${component.type}" (${absolutePath})`);
     }
 
-    const code = Buffer.from(output.contents).toString('utf8');
+    // Extract JS and CSS from output files
+    const jsFile = bundle.outputFiles.find((f) => f.path.endsWith('.js'));
+    const cssFile = bundle.outputFiles.find((f) => f.path.endsWith('.css'));
+
+    if (!jsFile) {
+      throw new Error(`No JS output for component "${component.type}" (${absolutePath})`);
+    }
+
+    let code = Buffer.from(jsFile.contents).toString('utf8');
+
+    // If there's CSS, inject it into a style tag at the beginning of the JS
+    if (cssFile) {
+      const css = Buffer.from(cssFile.contents).toString('utf8');
+      // Inject CSS as a style element that gets added to the document
+      const cssInjection = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(css)};document.head.appendChild(s);})();`;
+      code = cssInjection + code;
+    }
+
     const stats = await fs.stat(absolutePath).catch(() => undefined);
 
     results.set(component.type, {
