@@ -31,12 +31,14 @@
 **Unido** is a provider-agnostic TypeScript framework for building AI applications that work seamlessly across multiple AI platforms. The core principle is **"write once, run everywhere"** - define tools and components once, deploy to any AI provider.
 
 **Current Status** (as of January 2025):
-- ✅ Core framework: `@bandofai/unido-core` v0.1.3
-- ✅ OpenAI adapter: `@bandofai/unido-provider-openai` v0.1.5
-- ✅ CLI tool: `create-unido` v0.3.3
-- ✅ Component system: `@bandofai/unido-components` v0.1.4
-- 🚧 HTTP/SSE server implementation complete and working
-- 🚧 Component bundling system operational
+- ✅ Core framework: `@bandofai/unido-core` v0.1.13
+- ✅ OpenAI adapter: `@bandofai/unido-provider-openai` v0.1.27
+- ✅ CLI tool: `create-unido` v0.6.25
+- ✅ Component system: `@bandofai/unido-components` v0.2.9
+- ✅ Development tools: `@bandofai/unido-dev` v0.1.17
+- ✅ HTTP/SSE server implementation complete and working
+- ✅ Component bundling system operational
+- ✅ Widget development environment with Storybook
 - 🔜 Additional provider adapters (architecture ready)
 
 ### Core Philosophy
@@ -190,10 +192,12 @@ return componentResponse(
 ```
 
 Components registered via `app.component()` are:
-- Bundled on server startup
+- Bundled on server startup using esbuild
+- CSS is processed with PostCSS and injected into bundle
 - Exposed as MCP resources (`ui://widget/<name>.html`)
 - Fetched by ChatGPT when needed
 - Rendered in ChatGPT interface with full interactivity
+- Support hot reload during development (via chokidar)
 
 #### 3. MCP (Model Context Protocol) Foundation
 
@@ -212,38 +216,46 @@ OpenAI adapter implements MCP fully. Future adapters can:
 ### Package Architecture
 
 ```
-@bandofai/unido-core (v0.1.3)
+@bandofai/unido-core (v0.1.13)
 ├── API surface: createApp(), tool(), component()
 ├── Type system: UniversalTool, UniversalResponse
 ├── Schema utilities: Zod integration
 └── Component registry
 
-@bandofai/unido-provider-base (v0.1.3)
+@bandofai/unido-provider-base (v0.1.14)
 ├── ProviderAdapter interface
 ├── Base adapter implementation
 ├── Lifecycle hooks: startServer(), stopServer()
 └── Conversion contracts: schema, tool, response
 
-@bandofai/unido-provider-openai (v0.1.5)
+@bandofai/unido-provider-openai (v0.1.27)
 ├── MCP SDK integration
 ├── HTTP/SSE server implementation
 ├── JSON Schema conversion (zod-to-json-schema)
-├── Component bundling system
+├── Component bundling system with esbuild
+├── Hot reload support with chokidar
 └── OpenAI-specific metadata handling
 
-@bandofai/unido-components (v0.1.4)
-├── React component library
-├── Shared UI primitives
+@bandofai/unido-components (v0.2.9)
+├── React component library (shadcn/ui-based)
+├── Shared UI primitives with Radix UI
+├── Tailwind CSS 4 integration
+├── Storybook for component development
 └── Theme system
 
-create-unido (v0.3.3)
+create-unido (v0.6.25)
 ├── Interactive CLI scaffolding
 ├── Project templates (basic, weather)
 ├── Dependency management
 └── Development setup
 
-@bandofai/unido-dev (v0.1.0)
-└── Development utilities
+@bandofai/unido-dev (v0.1.17)
+├── Development server with Vite
+├── MCP client for widget testing
+├── Widget iframe renderer
+├── Tool call and log panels
+├── Hot reload capabilities
+└── E2E testing with Playwright
 ```
 
 ---
@@ -333,8 +345,11 @@ interface ProviderAdapter {
 
 - `@modelcontextprotocol/sdk` v1.0.6 - MCP protocol implementation
 - `zod-to-json-schema` v3.24.1 - Schema conversion
-- `express` - HTTP server
-- `cors` - CORS middleware
+- `express` v5.1.0 - HTTP server
+- `cors` v2.8.5 - CORS middleware
+- `esbuild` v0.25.0 - Component bundling
+- `chokidar` v4.0.3 - File watching for hot reload
+- `postcss-import` v16.1.1 - CSS processing
 
 #### OpenAI Metadata Format
 
@@ -352,14 +367,30 @@ interface ProviderAdapter {
 
 ### Components Package (`packages/components/`)
 
-**Purpose:** Shared React components
+**Purpose:** Shared React components built on shadcn/ui
 
 ```
 packages/components/src/
 ├── Card.tsx              # Basic card component
 ├── WeatherCard.tsx       # Weather display component
+├── ui/                   # shadcn/ui components
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── input.tsx
+│   ├── label.tsx
+│   └── select.tsx
+├── globals.css           # Tailwind CSS 4 global styles
 ├── index.ts              # Exports
 └── types.ts              # Shared types
+```
+
+#### Storybook Development
+
+```bash
+cd packages/components
+pnpm run storybook          # Start Storybook on port 6006
+pnpm run storybook:build    # Build static Storybook
+pnpm run storybook:test     # Run Storybook tests
 ```
 
 ### CLI Package (`packages/cli/`)
@@ -372,6 +403,36 @@ packages/components/src/
 - **[scaffold.ts](packages/cli/src/scaffold.ts)**: Project generation logic
 - **[templates.ts](packages/cli/src/templates.ts)**: Template definitions
 - **[utils.ts](packages/cli/src/utils.ts)**: Helper functions
+
+### Dev Package (`packages/dev/`)
+
+**Purpose:** Development server and widget testing tools
+
+#### Key Features
+
+- **Vite-based dev server**: Fast development experience with HMR
+- **MCP client**: Connect to running MCP servers for widget testing
+- **Widget renderer**: Iframe-based widget rendering with postMessage communication
+- **Tool execution**: Test tool calls directly from the UI
+- **Log monitoring**: Real-time logs from MCP server
+- **E2E testing**: Playwright-based testing infrastructure
+
+#### Key Files
+
+- **[mcp-client.ts](packages/dev/src/mcp-client.ts)**: MCP client with SSE transport
+- **[components/WidgetIframeRenderer.tsx](packages/dev/src/components/WidgetIframeRenderer.tsx)**: Widget rendering component
+- **[components/ToolCallPanel.tsx](packages/dev/src/components/ToolCallPanel.tsx)**: Tool execution UI
+- **[components/LogPanel.tsx](packages/dev/src/components/LogPanel.tsx)**: Log display component
+
+#### Testing
+
+```bash
+cd packages/dev
+pnpm run test           # Unit tests with Vitest
+pnpm run test:ui        # Vitest UI
+pnpm run test:e2e       # Playwright E2E tests
+pnpm run test:e2e:ui    # Playwright UI mode
+```
 
 ---
 
