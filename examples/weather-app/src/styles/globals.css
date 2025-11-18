@@ -1,0 +1,72 @@
+/* Import base styles from components package */
+@import "@bandofai/unido-components/globals.css";
+
+/* Weather-specific extensions */
+@theme {
+  /* Weather-specific colors */
+  --color-white: rgb(255 255 255);
+  --color-gray-200: rgb(229 231 235);
+  --color-gray-300: rgb(209 213 219);
+  --color-gray-400: rgb(156 163 175);
+  --color-slate-300: rgb(203 213 225);
+  --color-slate-400: rgb(148 163 184);
+  --color-slate-500: rgb(100 116 139);
+  --color-blue-100: rgb(219 234 254);
+  --color-blue-200: rgb(191 219 254);
+  --color-blue-300: rgb(147 197 253);
+  --color-blue-400: rgb(96 165 250);
+  --color-cyan-300: rgb(103 232 249);
+  --color-teal-200: rgb(153 246 228);
+  --color-orange-400: rgb(251 146 60);
+  --color-yellow-100: rgb(254 249 195);
+  --color-yellow-200: rgb(254 240 138);
+  --color-yellow-300: rgb(253 224 71);
+
+  /* Weather gradients */
+  --gradient-sunny: linear-gradient(135deg, rgb(251 146 60) 0%, rgb(252 185 65) 25%, rgb(253 210 90) 50%, rgb(253 224 71) 75%, rgb(254 240 138) 100%);
+  --gradient-clear: linear-gradient(135deg, rgb(96 165 250) 0%, rgb(110 180 251) 25%, rgb(130 190 252) 50%, rgb(180 210 250) 75%, rgb(254 240 138) 100%);
+  --gradient-cloudy: linear-gradient(135deg, rgb(156 163 175) 0%, rgb(175 180 190) 25%, rgb(190 195 205) 50%, rgb(200 207 217) 75%, rgb(191 219 254) 100%);
+  --gradient-partly-cloudy: linear-gradient(135deg, rgb(147 197 253) 0%, rgb(170 205 252) 25%, rgb(195 215 248) 50%, rgb(220 225 235) 75%, rgb(254 249 195) 100%);
+  --gradient-rainy: linear-gradient(135deg, rgb(100 116 139) 0%, rgb(115 130 155) 25%, rgb(130 145 170) 50%, rgb(140 160 200) 75%, rgb(147 197 253) 100%);
+  --gradient-snowy: linear-gradient(135deg, rgb(203 213 225) 0%, rgb(210 220 235) 25%, rgb(220 230 245) 50%, rgb(235 240 250) 75%, rgb(255 255 255) 100%);
+  --gradient-default: linear-gradient(135deg, rgb(96 165 250) 0%, rgb(99 185 250) 25%, rgb(101 205 249) 50%, rgb(120 220 240) 75%, rgb(153 246 228) 100%);
+}
+
+/* Weather gradient utilities */
+@layer utilities {
+  .bg-gradient-sunny { background-image: var(--gradient-sunny); }
+  .bg-gradient-clear { background-image: var(--gradient-clear); }
+  .bg-gradient-cloudy { background-image: var(--gradient-cloudy); }
+  .bg-gradient-partly-cloudy { background-image: var(--gradient-partly-cloudy); }
+  .bg-gradient-rainy { background-image: var(--gradient-rainy); }
+  .bg-gradient-snowy { background-image: var(--gradient-snowy); }
+  .bg-gradient-default { background-image: var(--gradient-default); }
+
+  /* Safelist weather card utilities */
+  .text-white { color: var(--color-white); }
+  .bg-white { background-color: var(--color-white); }
+  .border-white { border-color: var(--color-white); }
+  .text-yellow-300 { color: var(--color-yellow-300); }
+  .text-yellow-400 { color: oklch(85.2% 0.199 91.936); }
+  .text-gray-200 { color: var(--color-gray-200); }
+  .text-gray-300 { color: var(--color-gray-300); }
+  .text-blue-200 { color: var(--color-blue-200); }
+  .text-blue-300 { color: var(--color-blue-300); }
+  .text-blue-400 { color: var(--color-blue-400); }
+  .text-black { color: rgb(0 0 0); }
+  .bg-black { background-color: rgb(0 0 0); }
+  .border-black { border-color: rgb(0 0 0); }
+
+  /* Enhanced text shadows for readability */
+  .text-shadow-strong {
+    text-shadow: 0 0px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-shadow-xl {
+    text-shadow: 0 0px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-shadow-subtle {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
